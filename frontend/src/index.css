@@ -15,11 +15,11 @@ body {
 /* app centered column */
 .app-wrapper {
   max-width: 1100px;
-  margin: 0 auto;         /* center page column */
+  margin: 0 auto;
   padding: 32px 20px;
 }
 
-/* Header: title left, button right - perfectly aligned with .app-wrapper */
+/* Header */
 .header {
   width: 100%;
   display: flex;
@@ -36,7 +36,6 @@ body {
   color: #0f172a;
 }
 
-/* support both classnames: save-btn or add-note-btn */
 .save-btn, .add-note-btn {
   background: #6366f1;
   color: #fff;
@@ -49,7 +48,7 @@ body {
 }
 .save-btn:hover, .add-note-btn:hover { background: #4f46e5; }
 
-/* notes grid aligned with wrapper */
+/* notes grid */
 .notes-grid {
   display: grid;
   gap: 16px;
@@ -80,24 +79,29 @@ body {
 .note-title { margin: 0; font-size: 1.02rem; font-weight: 700; color:#0f172a; cursor: pointer; }
 .note-content { margin: 0; color: #374151; line-height: 1.45; font-size: 0.95rem; }
 
+.note-dates {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.3;
+}
+
 /* action buttons in card */
 .note-actions { display:flex; gap:8px; align-items:center; }
 .note-actions button { background: transparent; border: none; cursor: pointer; font-size: 1.05rem; }
 
-/* ========== MODAL / OVERLAY ========== */
-/* supports both className="modal" (as overlay) or className="modal-overlay" */
+/* MODAL */
 .modal, .modal-overlay {
   position: fixed;
-  inset: 0;                      /* top:0; left:0; bottom:0; right:0; */
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(15, 23, 42, 0.55);
   z-index: 1200;
-  padding: 20px;                 /* prevents modal touching edges on small screens */
+  padding: 20px;
 }
 
-/* inner modal card: supports className="modal-content" or className="modal" as inner if you use different naming */
 .modal-content, .modal-card, .modal > .modal-inner {
   background: #ffffff;
   border-radius: 12px;
@@ -108,7 +112,6 @@ body {
   box-sizing: border-box;
 }
 
-/* modal title */
 .modal-content h2,
 .modal-card h2 {
   margin: 0 0 12px 0;
@@ -117,22 +120,10 @@ body {
   color: #0f172a;
 }
 
-/* MAKE FORM STACK VERTICALLY inside modal */
-.modal-content form,
-.modal-card form,
-.modal > .modal-inner form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-/* input / textarea full width */
 .modal-content .note-input,
 .modal-card .note-input,
 .modal-content .note-textarea,
-.modal-card .note-textarea,
-.modal > .modal-inner input,
-.modal > .modal-inner textarea {
+.modal-card .note-textarea {
   width: 100%;
   font-size: 15px;
   padding: 10px 12px;
@@ -143,7 +134,10 @@ body {
 }
 .modal-content .note-input:focus,
 .modal-card .note-input:focus,
-.modal-content .note-textarea:focus { border-color: #6366f1; box-shadow: 0 6px 18px rgba(99,102,241,0.08); }
+.modal-content .note-textarea:focus {
+  border-color: #6366f1;
+  box-shadow: 0 6px 18px rgba(99,102,241,0.08);
+}
 
 .modal-content .note-textarea,
 .modal-card .note-textarea {
@@ -151,7 +145,7 @@ body {
   resize: vertical;
 }
 
-/* modal buttons row */
+/* modal buttons */
 .modal-actions, .modal-buttons {
   display:flex;
   justify-content: flex-end;
@@ -175,7 +169,14 @@ body {
   cursor: pointer;
 }
 
-/* responsive adjustments */
+.note-meta {
+  margin-top: 12px;
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.3;
+}
+
+/* responsive */
 @media (max-width: 560px) {
   .app-wrapper { padding: 20px 12px; }
   .modal-content, .modal-card { padding: 16px; }

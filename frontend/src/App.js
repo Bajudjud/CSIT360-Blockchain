@@ -49,7 +49,7 @@ function App() {
     try {
       if (isEditMode) {
         const res = await axios.put(`${API_URL}/${currentNote.id}`, currentNote);
-        setNotes(notes.map(n => (n.id === currentNote.id ? res.data : n)));
+        setNotes(notes.map((n) => (n.id === currentNote.id ? res.data : n)));
       } else {
         const res = await axios.post(API_URL, currentNote);
         setNotes([res.data, ...notes]);
@@ -63,7 +63,7 @@ function App() {
   const handleDelete = async () => {
     try {
       await axios.delete(`${API_URL}/${currentNote.id}`);
-      setNotes(notes.filter(n => n.id !== currentNote.id));
+      setNotes(notes.filter((n) => n.id !== currentNote.id));
       closeModal();
     } catch (err) {
       console.error("Error deleting note:", err);
@@ -99,7 +99,14 @@ function App() {
                 </h3>
                 <div className="note-actions">
                   <button onClick={() => openEditModal(note)}>✏️</button>
-                  <button onClick={() => { setCurrentNote(note); setIsDeleteConfirm(true); }}>❌</button>
+                  <button
+                    onClick={() => {
+                      setCurrentNote(note);
+                      setIsDeleteConfirm(true);
+                    }}
+                  >
+                    ❌
+                  </button>
                 </div>
               </div>
               <p className="note-content">
@@ -107,6 +114,11 @@ function App() {
                   ? note.content.substring(0, 100) + "..."
                   : note.content}
               </p>
+              <div className="note-dates">
+                <small>Created: {new Date(note.created_at).toLocaleString()}</small>
+                <br />
+                <small>Updated: {new Date(note.updated_at).toLocaleString()}</small>
+              </div>
             </div>
           ))
         )}
@@ -135,8 +147,12 @@ function App() {
               }
             />
             <div className="modal-buttons">
-              <button className="save-btn" onClick={handleSave}>Save</button>
-              <button className="cancel-btn" onClick={closeModal}>Cancel</button>
+              <button className="save-btn" onClick={handleSave}>
+                Save
+              </button>
+              <button className="cancel-btn" onClick={closeModal}>
+                Cancel
+              </button>
             </div>
           </div>
         </div>
@@ -148,8 +164,19 @@ function App() {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>{currentNote.title}</h2>
             <p>{currentNote.content}</p>
+            <div className="note-meta">
+              <small>
+                Created: {new Date(currentNote.created_at).toLocaleString()}
+              </small>
+              <br />
+              <small>
+                Last updated: {new Date(currentNote.updated_at).toLocaleString()}
+              </small>
+            </div>
             <div className="modal-buttons">
-              <button className="cancel-btn" onClick={closeModal}>Close</button>
+              <button className="cancel-btn" onClick={closeModal}>
+                Close
+              </button>
             </div>
           </div>
         </div>
@@ -162,8 +189,12 @@ function App() {
             <h2>Delete Note</h2>
             <p>Are you sure you want to delete this note?</p>
             <div className="modal-buttons">
-              <button className="confirm-btn" onClick={handleDelete}>Yes, Delete</button>
-              <button className="cancel-btn" onClick={closeModal}>Cancel</button>
+              <button className="confirm-btn" onClick={handleDelete}>
+                Yes, Delete
+              </button>
+              <button className="cancel-btn" onClick={closeModal}>
+                Cancel
+              </button>
             </div>
           </div>
         </div>
