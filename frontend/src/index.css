@@ -15,33 +15,33 @@ body {
 /* app centered column */
 .app-wrapper {
   max-width: 1100px;
-  margin: 0 auto;         /* center page column */
+  margin: 0 auto;
   padding: 32px 20px;
 }
 
-/* Header: title left, button right - perfectly aligned with .app-wrapper */
+/* Header */
 .header {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 50px;
+  margin-top: 50px;
   gap: 12px;
 }
 
 .header h1 {
   margin: 0;
-  font-size: 28px;
+  font-size: 40px;
   font-weight: 700;
   color: #0f172a;
 }
 
-/* support both classnames: save-btn or add-note-btn */
 .save-btn, .add-note-btn {
   background: #6366f1;
   color: #fff;
   border: none;
-  padding: 8px 14px;
+  padding: 15px 20px;
   border-radius: 10px;
   cursor: pointer;
   font-weight: 600;
@@ -49,7 +49,7 @@ body {
 }
 .save-btn:hover, .add-note-btn:hover { background: #4f46e5; }
 
-/* notes grid aligned with wrapper */
+/* notes grid */
 .notes-grid {
   display: grid;
   gap: 16px;
@@ -58,14 +58,15 @@ body {
 }
 
 /* note card */
+/* note card */
 .note-card {
   background: #fff;
   border-radius: 14px;
-  padding: 14px;
+  padding: 20px;               /* ⬅ slightly bigger padding */
   box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
   display: flex;
   flex-direction: column;
-  min-height: 150px;
+  min-height: 220px;           /* ⬅ was 150px, now longer */
   transition: transform .12s ease, box-shadow .12s ease;
 }
 .note-card:hover { transform: translateY(-4px); box-shadow: 0 10px 28px rgba(15,23,42,0.10); }
@@ -80,59 +81,50 @@ body {
 .note-title { margin: 0; font-size: 1.02rem; font-weight: 700; color:#0f172a; cursor: pointer; }
 .note-content { margin: 0; color: #374151; line-height: 1.45; font-size: 0.95rem; }
 
+.note-dates {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.3;
+  font-style: italic;
+}
+
 /* action buttons in card */
 .note-actions { display:flex; gap:8px; align-items:center; }
 .note-actions button { background: transparent; border: none; cursor: pointer; font-size: 1.05rem; }
 
-/* ========== MODAL / OVERLAY ========== */
-/* supports both className="modal" (as overlay) or className="modal-overlay" */
+/* MODAL */
 .modal, .modal-overlay {
   position: fixed;
-  inset: 0;                      /* top:0; left:0; bottom:0; right:0; */
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(15, 23, 42, 0.55);
   z-index: 1200;
-  padding: 20px;                 /* prevents modal touching edges on small screens */
+  padding: 20px;
 }
 
-/* inner modal card: supports className="modal-content" or className="modal" as inner if you use different naming */
-.modal-content, .modal-card, .modal > .modal-inner {
+.modal-content {
   background: #ffffff;
   border-radius: 12px;
   width: 100%;
   max-width: 620px;
-  padding: 20px 22px;
+  min-height: 600px;   /* 👈 makes modal taller */
+  padding: 30px 26px;  /* 👈 adds more space inside */
   box-shadow: 0 18px 40px rgba(2,6,23,0.35);
   box-sizing: border-box;
 }
 
-/* modal title */
-.modal-content h2,
-.modal-card h2 {
+.modal-content h2 {
   margin: 0 0 12px 0;
   font-size: 20px;
   font-weight: 700;
   color: #0f172a;
 }
 
-/* MAKE FORM STACK VERTICALLY inside modal */
-.modal-content form,
-.modal-card form,
-.modal > .modal-inner form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-/* input / textarea full width */
 .modal-content .note-input,
-.modal-card .note-input,
-.modal-content .note-textarea,
-.modal-card .note-textarea,
-.modal > .modal-inner input,
-.modal > .modal-inner textarea {
+.modal-content .note-textarea {
   width: 100%;
   font-size: 15px;
   padding: 10px 12px;
@@ -142,17 +134,18 @@ body {
   transition: box-shadow .12s ease, border-color .12s ease;
 }
 .modal-content .note-input:focus,
-.modal-card .note-input:focus,
-.modal-content .note-textarea:focus { border-color: #6366f1; box-shadow: 0 6px 18px rgba(99,102,241,0.08); }
+.modal-content .note-textarea:focus {
+  border-color: #6366f1;
+  box-shadow: 0 6px 18px rgba(99,102,241,0.08);
+}
 
-.modal-content .note-textarea,
-.modal-card .note-textarea {
-  min-height: 140px;
+.modal-content .note-textarea {
+  min-height: 500px;
   resize: vertical;
 }
 
-/* modal buttons row */
-.modal-actions, .modal-buttons {
+/* modal buttons */
+.modal-buttons {
   display:flex;
   justify-content: flex-end;
   gap: 10px;
@@ -175,9 +168,9 @@ body {
   cursor: pointer;
 }
 
-/* responsive adjustments */
+/* responsive */
 @media (max-width: 560px) {
   .app-wrapper { padding: 20px 12px; }
-  .modal-content, .modal-card { padding: 16px; }
+  .modal-content { padding: 16px; }
   .header h1 { font-size: 20px; }
 }
