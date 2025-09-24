@@ -76,6 +76,11 @@ function App() {
     setIsDeleteConfirm(false);
   };
 
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "";
+    return new Date(dateStr).toLocaleString();
+  };
+
   return (
     <div className="app-wrapper">
       {/* Header */}
@@ -115,9 +120,9 @@ function App() {
                   : note.content}
               </p>
               <div className="note-dates">
-                <small>Created: {new Date(note.created_at).toLocaleString()}</small>
+                <span>Created: {formatDate(note.created_at)}</span>
                 <br />
-                <small>Updated: {new Date(note.updated_at).toLocaleString()}</small>
+                <span>Updated: {formatDate(note.updated_at)}</span>
               </div>
             </div>
           ))
@@ -127,7 +132,10 @@ function App() {
       {/* Add/Edit Modal */}
       {isModalOpen && (
         <div className="modal-overlay" onClick={closeModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h2>{isEditMode ? "Edit Note" : "Add Note"}</h2>
             <input
               type="text"
@@ -161,17 +169,16 @@ function App() {
       {/* View Modal */}
       {isViewMode && (
         <div className="modal-overlay" onClick={closeModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h2>{currentNote.title}</h2>
             <p>{currentNote.content}</p>
-            <div className="note-meta">
-              <small>
-                Created: {new Date(currentNote.created_at).toLocaleString()}
-              </small>
+            <div className="note-dates">
+              <span>Created: {formatDate(currentNote.created_at)}</span>
               <br />
-              <small>
-                Last updated: {new Date(currentNote.updated_at).toLocaleString()}
-              </small>
+              <span>Updated: {formatDate(currentNote.updated_at)}</span>
             </div>
             <div className="modal-buttons">
               <button className="cancel-btn" onClick={closeModal}>
@@ -185,7 +192,10 @@ function App() {
       {/* Delete Confirmation */}
       {isDeleteConfirm && (
         <div className="modal-overlay" onClick={closeModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h2>Delete Note</h2>
             <p>Are you sure you want to delete this note?</p>
             <div className="modal-buttons">
