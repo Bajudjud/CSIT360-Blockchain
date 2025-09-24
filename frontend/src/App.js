@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { FaPen, FaTrash } from "react-icons/fa";
 import "./index.css";
 
 const API_URL = "http://localhost:5000/api/notes";
@@ -36,6 +37,7 @@ function App() {
     setCurrentNote(note);
     setIsEditMode(true);
     setIsModalOpen(true);
+    setIsViewMode(false); // close view if open
   };
 
   const openViewModal = (note) => {
@@ -46,12 +48,16 @@ function App() {
   const handleSave = async () => {
     if (!currentNote.title.trim() || !currentNote.content.trim()) return;
 
+    const now = new Date().toISOString(); // still save ISO, backend-friendly
+
     try {
       if (isEditMode) {
-        const res = await axios.put(`${API_URL}/${currentNote.id}`, currentNote);
+        const updatedNote = { ...currentNote, updated_at: now };
+        const res = await axios.put(`${API_URL}/${currentNote.id}`, updatedNote);
         setNotes(notes.map((n) => (n.id === currentNote.id ? res.data : n)));
       } else {
-        const res = await axios.post(API_URL, currentNote);
+        const newNote = { ...currentNote, created_at: now, updated_at: now };
+        const res = await axios.post(API_URL, newNote);
         setNotes([res.data, ...notes]);
       }
       closeModal();
@@ -59,6 +65,7 @@ function App() {
       console.error("Error saving note:", err);
     }
   };
+
 
   const handleDelete = async () => {
     try {
@@ -78,8 +85,23 @@ function App() {
 
   const formatDate = (dateStr) => {
     if (!dateStr) return "";
-    return new Date(dateStr).toLocaleString();
+    const options = {
+      month: "2-digit",
+      day: "2-digit",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+      timeZone: "Asia/Manila", // force PH time
+    };
+    return new Date(dateStr)
+      .toLocaleString("en-US", options)
+      .replace(",", " at");
   };
+
+
+
+
 
   return (
     <div className="app-wrapper">
@@ -97,23 +119,32 @@ function App() {
           <p className="no-notes">No notes yet. Create one!</p>
         ) : (
           notes.map((note) => (
-            <div key={note.id} className="note-card">
+            <div
+              key={note.id}
+              className="note-card"
+              onClick={() => openViewModal(note)} // whole card clickable
+            >
               <div className="note-card-header">
-                <h3 className="note-title" onClick={() => openViewModal(note)}>
-                  {note.title}
-                </h3>
-                <div className="note-actions">
-                  <button onClick={() => openEditModal(note)}>✏️</button>
+                <h3 className="note-title">{note.title}</h3>
+                <div
+                  className="note-actions"
+                  onClick={(e) => e.stopPropagation()} // prevent triggering view
+                >
+                  <button onClick={() => openEditModal(note)} title="Edit">
+                    <FaPen />
+                  </button>
                   <button
                     onClick={() => {
                       setCurrentNote(note);
                       setIsDeleteConfirm(true);
                     }}
+                    title="Delete"
                   >
-                    ❌
+                    <FaTrash />
                   </button>
                 </div>
               </div>
+
               <p className="note-content">
                 {note.content.length > 100
                   ? note.content.substring(0, 100) + "..."
@@ -132,10 +163,7 @@ function App() {
       {/* Add/Edit Modal */}
       {isModalOpen && (
         <div className="modal-overlay" onClick={closeModal}>
-          <div
-            className="modal-content"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>{isEditMode ? "Edit Note" : "Add Note"}</h2>
             <input
               type="text"
@@ -169,10 +197,7 @@ function App() {
       {/* View Modal */}
       {isViewMode && (
         <div className="modal-overlay" onClick={closeModal}>
-          <div
-            className="modal-content"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>{currentNote.title}</h2>
             <p>{currentNote.content}</p>
             <div className="note-dates">
@@ -181,6 +206,12 @@ function App() {
               <span>Updated: {formatDate(currentNote.updated_at)}</span>
             </div>
             <div className="modal-buttons">
+              <button
+                className="save-btn"
+                onClick={() => openEditModal(currentNote)}
+              >
+                Edit
+              </button>
               <button className="cancel-btn" onClick={closeModal}>
                 Close
               </button>
@@ -192,10 +223,7 @@ function App() {
       {/* Delete Confirmation */}
       {isDeleteConfirm && (
         <div className="modal-overlay" onClick={closeModal}>
-          <div
-            className="modal-content"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>Delete Note</h2>
             <p>Are you sure you want to delete this note?</p>
             <div className="modal-buttons">
