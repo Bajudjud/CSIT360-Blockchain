@@ -1,83 +1,110 @@
-"use client"
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import "./index.css";
 
-import { useState } from "react"
+const API_URL = "http://localhost:5000/api/notes";
 
 const App = () => {
-  const [title, setTitle] = useState("")
-  const [content, setContent] = useState("")
-  const [notes, setNotes] = useState([])
-  const [showAddForm, setShowAddForm] = useState(false)
-  const [editingNote, setEditingNote] = useState(null)
-  const [notification, setNotification] = useState(null)
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [notes, setNotes] = useState([]);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingNote, setEditingNote] = useState(null);
+  const [notification, setNotification] = useState(null);
 
-  // Show notification function
-  const showNotification = (type, title, subtitle) => {
-    setNotification({ type, title, subtitle })
-    setTimeout(() => setNotification(null), 4000)
-  }
+  useEffect(() => {
+    const fetchNotes = async () => {
+      try {
+        const res = await axios.get(API_URL);
+        // Map backend timestamps to UI-friendly fields
+        const mapped = res.data.map((n) => ({
+          id: n.id,
+          title: n.title,
+          content: n.content,
+          createdAt: n.created_at || n.createdAt,
+          updatedAt: n.updated_at || n.updatedAt,
+        }));
+        setNotes(mapped);
+      } catch (err) {
+        console.error("Error fetching notes:", err);
+      }
+    };
+    fetchNotes();
+  }, []);
 
-  // Function to create note
+  const showNotification = (type, nTitle, subtitle) => {
+    setNotification({ type, title: nTitle, subtitle });
+    setTimeout(() => setNotification(null), 4000);
+  };
+
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    if (!title.trim() || !content.trim()) return
+    e.preventDefault();
+    if (!title.trim() || !content.trim()) return;
 
     try {
       if (editingNote) {
-        // Update existing note
+        // Update existing note in backend
+        await axios.put(`${API_URL}/${editingNote.id}`, { title, content });
         const updatedNotes = notes.map((note) =>
-          note.id === editingNote.id ? { ...note, title, content, updatedAt: new Date().toLocaleString() } : note,
-        )
-        setNotes(updatedNotes)
-        showNotification("success", "Note updated", "your change was saved")
-        setEditingNote(null)
+          note.id === editingNote.id
+            ? { ...note, title, content, updatedAt: new Date().toLocaleString() }
+            : note
+        );
+        setNotes(updatedNotes);
+        showNotification("success", "Note updated", "your change was saved");
+        setEditingNote(null);
       } else {
-        // Create new note
+        // Create new note in backend
+        const res = await axios.post(API_URL, { title, content });
         const newNote = {
-          id: Date.now(),
-          title,
-          content,
+          id: res.data.id,
+          title: res.data.title,
+          content: res.data.content,
           createdAt: new Date().toLocaleString(),
-        }
-        setNotes([newNote, ...notes])
-        showNotification("success", "Note added", "your note has been saved successfully")
+        };
+        setNotes([newNote, ...notes]);
+        showNotification("success", "Note added", "your note has been saved successfully");
       }
 
-      setTitle("")
-      setContent("")
-      setShowAddForm(false)
+      setTitle("");
+      setContent("");
+      setShowAddForm(false);
     } catch (error) {
-      console.error("Error saving note:", error)
+      console.error("Error saving note:", error);
     }
-  }
+  };
 
-  // Function to edit note
   const handleEdit = (note) => {
-    setEditingNote(note)
-    setTitle(note.title)
-    setContent(note.content)
-    setShowAddForm(true)
-  }
+    setEditingNote(note);
+    setTitle(note.title);
+    setContent(note.content);
+    setShowAddForm(true);
+  };
 
-  // Function to delete note
-  const handleDelete = (noteId) => {
-    setNotes(notes.filter((note) => note.id !== noteId))
-    showNotification("success", "Note removed", "the note has been removed")
-  }
+  const handleDelete = async (noteId) => {
+    try {
+      await axios.delete(`${API_URL}/${noteId}`);
+      setNotes(notes.filter((note) => note.id !== noteId));
+      showNotification("success", "Note removed", "the note has been removed");
+    } catch (err) {
+      console.error("Error deleting note:", err);
+    }
+  };
 
-  // Close modal function
   const closeModal = () => {
-    setShowAddForm(false)
-    setEditingNote(null)
-    setTitle("")
-    setContent("")
-  }
+    setShowAddForm(false);
+    setEditingNote(null);
+    setTitle("");
+    setContent("");
+  };
 
   return (
     <div
       style={{
         minHeight: "100vh",
         backgroundColor: "#f8fafc",
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontFamily:
+          '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       }}
     >
       {/* Header */}
@@ -119,12 +146,12 @@ const App = () => {
             boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1)",
           }}
           onMouseOver={(e) => {
-            e.target.style.transform = "translateY(-1px)"
-            e.target.style.boxShadow = "0 10px 25px 0 rgba(99, 102, 241, 0.3)"
+            e.target.style.transform = "translateY(-1px)";
+            e.target.style.boxShadow = "0 10px 25px 0 rgba(99, 102, 241, 0.3)";
           }}
           onMouseOut={(e) => {
-            e.target.style.transform = "translateY(0)"
-            e.target.style.boxShadow = "0 1px 3px 0 rgba(0, 0, 0, 0.1)"
+            e.target.style.transform = "translateY(0)";
+            e.target.style.boxShadow = "0 1px 3px 0 rgba(0, 0, 0, 0.1)";
           }}
         >
           + Add Note
@@ -185,10 +212,10 @@ const App = () => {
                   boxSizing: "border-box",
                 }}
                 onFocus={(e) => {
-                  e.target.style.borderColor = "#6366f1"
+                  e.target.style.borderColor = "#6366f1";
                 }}
                 onBlur={(e) => {
-                  e.target.style.borderColor = "#e2e8f0"
+                  e.target.style.borderColor = "#e2e8f0";
                 }}
               />
               <textarea
@@ -210,10 +237,10 @@ const App = () => {
                   boxSizing: "border-box",
                 }}
                 onFocus={(e) => {
-                  e.target.style.borderColor = "#6366f1"
+                  e.target.style.borderColor = "#6366f1";
                 }}
                 onBlur={(e) => {
-                  e.target.style.borderColor = "#e2e8f0"
+                  e.target.style.borderColor = "#e2e8f0";
                 }}
               />
               <div
@@ -237,10 +264,10 @@ const App = () => {
                     transition: "all 0.2s ease",
                   }}
                   onMouseOver={(e) => {
-                    e.target.style.backgroundColor = "#f1f5f9"
+                    e.target.style.backgroundColor = "#f1f5f9";
                   }}
                   onMouseOut={(e) => {
-                    e.target.style.backgroundColor = "transparent"
+                    e.target.style.backgroundColor = "transparent";
                   }}
                 >
                   Cancel
@@ -259,10 +286,10 @@ const App = () => {
                     transition: "all 0.2s ease",
                   }}
                   onMouseOver={(e) => {
-                    e.target.style.transform = "translateY(-1px)"
+                    e.target.style.transform = "translateY(-1px)";
                   }}
                   onMouseOut={(e) => {
-                    e.target.style.transform = "translateY(0)"
+                    e.target.style.transform = "translateY(0)";
                   }}
                 >
                   {editingNote ? "Update Note" : "Save Note"}
@@ -440,12 +467,12 @@ const App = () => {
                   flexDirection: "column",
                 }}
                 onMouseOver={(e) => {
-                  e.currentTarget.style.boxShadow = "0 10px 25px 0 rgba(0, 0, 0, 0.1)"
-                  e.currentTarget.style.transform = "translateY(-2px)"
+                  e.currentTarget.style.boxShadow = "0 10px 25px 0 rgba(0, 0, 0, 0.1)";
+                  e.currentTarget.style.transform = "translateY(-2px)";
                 }}
                 onMouseOut={(e) => {
-                  e.currentTarget.style.boxShadow = "0 1px 3px 0 rgba(0, 0, 0, 0.05)"
-                  e.currentTarget.style.transform = "translateY(0)"
+                  e.currentTarget.style.boxShadow = "0 1px 3px 0 rgba(0, 0, 0, 0.05)";
+                  e.currentTarget.style.transform = "translateY(0)";
                 }}
               >
                 <div
@@ -459,8 +486,8 @@ const App = () => {
                 >
                   <button
                     onClick={(e) => {
-                      e.stopPropagation()
-                      handleEdit(note)
+                      e.stopPropagation();
+                      handleEdit(note);
                     }}
                     style={{
                       background: "none",
@@ -475,12 +502,12 @@ const App = () => {
                       justifyContent: "center",
                     }}
                     onMouseOver={(e) => {
-                      e.target.style.backgroundColor = "#f1f5f9"
-                      e.target.style.color = "#6366f1"
+                      e.target.style.backgroundColor = "#f1f5f9";
+                      e.target.style.color = "#6366f1";
                     }}
                     onMouseOut={(e) => {
-                      e.target.style.backgroundColor = "transparent"
-                      e.target.style.color = "#64748b"
+                      e.target.style.backgroundColor = "transparent";
+                      e.target.style.color = "#64748b";
                     }}
                     title="Edit note"
                   >
@@ -500,8 +527,8 @@ const App = () => {
                   </button>
                   <button
                     onClick={(e) => {
-                      e.stopPropagation()
-                      handleDelete(note.id)
+                      e.stopPropagation();
+                      handleDelete(note.id);
                     }}
                     style={{
                       background: "none",
@@ -516,12 +543,12 @@ const App = () => {
                       justifyContent: "center",
                     }}
                     onMouseOver={(e) => {
-                      e.target.style.backgroundColor = "#fef2f2"
-                      e.target.style.color = "#ef4444"
+                      e.target.style.backgroundColor = "#fef2f2";
+                      e.target.style.color = "#ef4444";
                     }}
                     onMouseOut={(e) => {
-                      e.target.style.backgroundColor = "transparent"
-                      e.target.style.color = "#64748b"
+                      e.target.style.backgroundColor = "transparent";
+                      e.target.style.color = "#64748b";
                     }}
                     title="Delete note"
                   >
@@ -595,8 +622,7 @@ const App = () => {
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default App
-
+export default App;
