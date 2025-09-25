@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { FaPen, FaTrash } from "react-icons/fa";
 import "./index.css";
 
 const API_URL = "http://localhost:5000/api/notes";
@@ -131,7 +130,8 @@ function App() {
                   onClick={(e) => e.stopPropagation()} // prevent triggering view
                 >
                   <button onClick={() => openEditModal(note)} title="Edit">
-                    <FaPen />
+                    ✏️ Edit
+
                   </button>
                   <button
                     onClick={() => {
@@ -140,7 +140,7 @@ function App() {
                     }}
                     title="Delete"
                   >
-                    <FaTrash />
+                    🗑️ Delete
                   </button>
                 </div>
               </div>
