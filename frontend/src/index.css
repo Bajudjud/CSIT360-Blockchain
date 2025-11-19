@@ -220,3 +220,250 @@ body {
   cursor: pointer;
   color: #999;
 }
+/* NEW: Header Actions Layout */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+/* NEW: Wallet Connection Styles */
+.connect-wallet-btn {
+  background: #3D5A80;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.connect-wallet-btn:hover {
+  background: #2d4466;
+}
+
+.wallet-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wallet-address {
+  background: #e3f2fd;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 14px;
+  color: #1565c0;
+}
+
+.disconnect-btn {
+  background: #f44336;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+/* NEW: Blockchain Verification Badge */
+.blockchain-badge {
+  background: #4CAF50;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.7em;
+  margin-right: 8px;
+  cursor: pointer;
+  border: none;
+}
+
+.blockchain-badge:hover {
+  background: #45a049;
+  transform: scale(1.05);
+}
+
+/* NEW: View Details Button in Notifications */
+.view-details-btn {
+  background: transparent;
+  border: 1px solid #666;
+  color: #666;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  margin-left: 10px;
+  cursor: pointer;
+}
+
+.view-details-btn:hover {
+  background: #666;
+  color: white;
+}
+
+/* NEW: Transaction Details Modal */
+.tx-details-modal {
+  max-width: 600px;
+}
+
+.tx-details {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  margin: 15px 0;
+  border-left: 4px solid #3D5A80;
+}
+
+.tx-field {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 10px 0;
+  padding: 8px 0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.tx-field:last-child {
+  border-bottom: none;
+}
+
+.tx-action {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 0.9em;
+}
+
+.tx-action.create { background: #e8f5e8; color: #2e7d32; }
+.tx-action.update { background: #e3f2fd; color: #1565c0; }
+.tx-action.delete { background: #ffebee; color: #c62828; }
+
+.block-number {
+  color: #7b1fa2;
+  font-weight: bold;
+}
+
+.fees {
+  color: #f57c00;
+  font-weight: bold;
+}
+
+.status.confirmed { 
+  color: #4CAF50; 
+  font-weight: bold;
+}
+
+.status.failed { 
+  color: #f44336; 
+  font-weight: bold;
+}
+
+.metadata-section {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 2px solid #e0e0e0;
+}
+
+.metadata-json {
+  background: white;
+  padding: 15px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  overflow-x: auto;
+  border: 1px solid #ddd;
+  margin-top: 10px;
+}
+
+/* Make note actions flex better */
+.note-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Lace Wallet Styles */
+.connect-wallet-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+}
+
+.connect-wallet-btn:hover:not(.connecting) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.connect-wallet-btn.connecting {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+.real-wallet {
+  background: white;
+  border: 2px solid #e9ecef;
+  border-radius: 10px;
+  padding: 12px;
+  min-width: 250px;
+}
+
+.wallet-header {
+  display: flex;
+  justify-content: between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.wallet-name {
+  font-weight: bold;
+  color: #764ba2;
+}
+
+.disconnect-btn {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.wallet-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wallet-address {
+  font-family: monospace;
+  font-size: 12px;
+  color: #495057;
+  background: #f8f9fa;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.wallet-balance {
+  font-weight: bold;
+  color: #28a745;
+  font-size: 14px;
+}
+
+.wallet-required-banner {
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 15px 0;
+  text-align: center;
+  color: #856404;
+}

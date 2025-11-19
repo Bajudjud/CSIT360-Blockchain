@@ -1,26 +1,42 @@
 [
   {
-    "id": 1,
-    "title": "Test Note",
-    "content": "This is a test",
-    "created_at": "2025-11-19T14:19:28.332Z",
-    "updated_at": "2025-11-19T14:19:28.332Z",
+    "id": 5,
+    "title": "test",
+    "content": "ting",
+    "created_at": "2025-11-19T16:31:01.959Z",
+    "updated_at": "2025-11-19T16:31:01.959Z",
     "blockchain": {
       "success": true,
-      "txHash": "0x19a9c7c15f01CRE",
+      "txHash": "0x19a9cf4886c5CRE",
       "action": "CREATE",
-      "noteId": 1,
-      "noteTitle": "Test Note",
-      "timestamp": "2025-11-19T14:19:29.136Z",
-      "block": 1809415,
-      "fees": "1.75 ADA"
+      "noteId": 5,
+      "noteTitle": "test",
+      "walletAddress": "addr_test1qzvm86qhp7urr3c3cx0cnv75jzf66c6ckymklvac8stae7snytz2v66nhn7qffp7lln5xw427rlmup4ng6u5ejywaa0qwgxfn5",
+      "metadata": {
+        "1337": {
+          "app": "CSIT360-Notes",
+          "action": "CREATE",
+          "noteId": 5,
+          "noteTitle": "test",
+          "contentHash": "hash_4_dGVzdA==",
+          "timestamp": "2025-11-19T16:31:02.764Z",
+          "version": "1.0"
+        }
+      },
+      "timestamp": "2025-11-19T16:31:02.764Z",
+      "block": 1531822,
+      "fees": "1.76 ADA",
+      "confirmations": 40,
+      "verified": true,
+      "onChain": true,
+      "network": "Cardano Testnet"
     }
   },
   {
-    "id": 2,
-    "title": "test",
-    "content": "test",
-    "created_at": "2025-11-19T14:19:56.739Z",
-    "updated_at": "2025-11-19T14:19:56.739Z"
+    "id": 6,
+    "title": "wthelly",
+    "content": "gdsgfds",
+    "created_at": "2025-11-19T16:41:26.694Z",
+    "updated_at": "2025-11-19T16:41:26.694Z"
   }
 ]
