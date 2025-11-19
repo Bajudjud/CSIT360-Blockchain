@@ -6,7 +6,10 @@ import "./index.css";
 const API_URL = "http://localhost:5000/api/notes";
 
 function App() {
-  const [notes, setNotes] = useState([]);
+  const [notes, setNotes] = useState(() => {
+  const savedNotes = localStorage.getItem('notesData');
+  return savedNotes ? JSON.parse(savedNotes) : [];
+});
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isViewMode, setIsViewMode] = useState(false);
@@ -28,36 +31,17 @@ function App() {
   const [isConnecting, setIsConnecting] = useState(false);
 
   // Check for Cardano wallets on component mount
-   useEffect(() => {
-    localStorage.setItem('walletState', JSON.stringify(wallet));
-  }, [wallet]);
+  // Save notes to localStorage whenever they change
+useEffect(() => {
+  if (notes.length > 0) {
+    localStorage.setItem('notesData', JSON.stringify(notes));
+  }
+}, [notes]);
+
+  
+    
   
 
-  const checkForWallets = () => {
-    // Check if any Cardano wallet is available
-    const hasWallet = window.cardano && (
-      window.cardano.lace || 
-      window.cardano.eternl || 
-      window.cardano.nami ||
-      window.cardano.flint
-    );
-    
-    console.log("Cardano wallets detected:", {
-      lace: !!window.cardano?.lace,
-      eternl: !!window.cardano?.eternl,
-      nami: !!window.cardano?.nami,
-      flint: !!window.cardano?.flint
-    });
-  };
-
-  const fetchNotes = async () => {
-    try {
-      const res = await axios.get(API_URL);
-      setNotes(res.data);
-    } catch (err) {
-      console.error("Error fetching notes:", err);
-    }
-  };
 
   // SIMPLIFIED WALLET CONNECTION
 const connectWallet = async () => {
@@ -120,18 +104,27 @@ const connectWallet = async () => {
   };
   const updateWalletBalance = (fees) => {
   if (wallet.connected) {
-    // Extract the fee amount from string like "1.42 ADA"
-    const feeAmount = parseFloat(fees.split(' ')[0]);
-    const currentBalance = parseFloat(wallet.balance.split(' ')[0]);
-    const newBalance = (currentBalance - feeAmount).toFixed(2);
-    
-    setWallet(prev => ({
-      ...prev,
-      balance: `${newBalance} ADA`
-    }));
+    try {
+      // Extract the fee amount from string like "1.42 ADA"
+      const feeAmount = parseFloat(fees.split(' ')[0]);
+      const currentBalance = parseFloat(wallet.balance.split(' ')[0]);
+      const newBalance = Math.max(0, (currentBalance - feeAmount).toFixed(2)); // Prevent negative balance
+      
+      const updatedWallet = {
+        ...wallet,
+        balance: `${newBalance} ADA`
+      };
+      
+      setWallet(updatedWallet);
+      // Save to localStorage immediately
+      localStorage.setItem('walletState', JSON.stringify(updatedWallet));
+      
+      console.log(`💰 Balance updated: -${feeAmount} ADA = ${newBalance} ADA remaining`);
+    } catch (error) {
+      console.error("Error updating balance:", error);
+    }
   }
 };
-
   const handleSave = async () => {
   if (!currentNote.title.trim() || !currentNote.content.trim()) return;
 
@@ -210,13 +203,7 @@ const handleDelete = async () => {
   };
 
   // Check if any Cardano wallets are available
-  const hasWallets = window.cardano && (
-    window.cardano.lace || 
-    window.cardano.eternl || 
-    window.cardano.nami ||
-    window.cardano.flint
-  );
-
+  
   return (
     <div className="app-wrapper">
       {/* Header */}
