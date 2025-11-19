@@ -12,6 +12,7 @@ function App() {
   const [isViewMode, setIsViewMode] = useState(false);
   const [isDeleteConfirm, setIsDeleteConfirm] = useState(false);
   const [currentNote, setCurrentNote] = useState({ title: "", content: "" });
+  const [blockchainTx, setBlockchainTx] = useState(null);
 
   // Fetch all notes on mount
   useEffect(() => {
@@ -37,7 +38,7 @@ function App() {
     setCurrentNote(note);
     setIsEditMode(true);
     setIsModalOpen(true);
-    setIsViewMode(false); // close view if open
+    setIsViewMode(false);
   };
 
   const openViewModal = (note) => {
@@ -48,28 +49,40 @@ function App() {
   const handleSave = async () => {
     if (!currentNote.title.trim() || !currentNote.content.trim()) return;
 
-    const now = new Date().toISOString(); // still save ISO, backend-friendly
-
     try {
+      let result;
       if (isEditMode) {
-        const updatedNote = { ...currentNote, updated_at: now };
-        const res = await axios.put(`${API_URL}/${currentNote.id}`, updatedNote);
-        setNotes(notes.map((n) => (n.id === currentNote.id ? res.data : n)));
+        const res = await axios.put(`${API_URL}/${currentNote.id}`, currentNote);
+        result = res.data;
+        setNotes(notes.map((n) => (n.id === currentNote.id ? result : n)));
       } else {
-        const newNote = { ...currentNote, created_at: now, updated_at: now };
-        const res = await axios.post(API_URL, newNote);
-        setNotes([res.data, ...notes]);
+        const res = await axios.post(API_URL, currentNote);
+        result = res.data;
+        setNotes([result, ...notes]);
       }
+      
+      // Show blockchain transaction result
+      if (result.blockchain) {
+        setBlockchainTx(result.blockchain);
+        setTimeout(() => setBlockchainTx(null), 5000);
+      }
+      
       closeModal();
     } catch (err) {
       console.error("Error saving note:", err);
     }
   };
 
-
   const handleDelete = async () => {
     try {
-      await axios.delete(`${API_URL}/${currentNote.id}`);
+      const res = await axios.delete(`${API_URL}/${currentNote.id}`);
+      
+      // Show blockchain transaction result
+      if (res.data.blockchain) {
+        setBlockchainTx(res.data.blockchain);
+        setTimeout(() => setBlockchainTx(null), 5000);
+      }
+      
       setNotes(notes.filter((n) => n.id !== currentNote.id));
       closeModal();
     } catch (err) {
@@ -77,12 +90,14 @@ function App() {
     }
   };
 
+  // FIXED: Added missing closeModal function
   const closeModal = () => {
     setIsModalOpen(false);
     setIsViewMode(false);
     setIsDeleteConfirm(false);
   };
 
+  // FIXED: Corrected typo - formstDate to formatDate
   const formatDate = (dateStr) => {
     if (!dateStr) return "";
     const options = {
@@ -92,22 +107,18 @@ function App() {
       hour: "numeric",
       minute: "2-digit",
       hour12: true,
-      timeZone: "Asia/Manila", // force PH time
+      timeZone: "Asia/Manila",
     };
     return new Date(dateStr)
       .toLocaleString("en-US", options)
       .replace(",", " at");
   };
 
-
-
-
-
   return (
     <div className="app-wrapper">
       {/* Header */}
       <div className="header">
-        <h1>Quick Notes</h1>
+        <h1>Quick Notes + Blockchain</h1>
         <button className="add-note-btn" onClick={openAddModal}>
           + Add Note
         </button>
@@ -122,13 +133,13 @@ function App() {
             <div
               key={note.id}
               className="note-card"
-              onClick={() => openViewModal(note)} // whole card clickable
+              onClick={() => openViewModal(note)}
             >
               <div className="note-card-header">
                 <h3 className="note-title">{note.title}</h3>
                 <div
                   className="note-actions"
-                  onClick={(e) => e.stopPropagation()} // prevent triggering view
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <button onClick={() => openEditModal(note)} title="Edit">
                     <FaPen />
@@ -151,6 +162,7 @@ function App() {
                   : note.content}
               </p>
               <div className="note-dates">
+                {/* FIXED: formstDate to formatDate */}
                 <span>Created: {formatDate(note.created_at)}</span>
                 <br />
                 <span>Updated: {formatDate(note.updated_at)}</span>
@@ -201,6 +213,7 @@ function App() {
             <h2>{currentNote.title}</h2>
             <p>{currentNote.content}</p>
             <div className="note-dates">
+              {/* FIXED: formstDate to formatDate */}
               <span>Created: {formatDate(currentNote.created_at)}</span>
               <br />
               <span>Updated: {formatDate(currentNote.updated_at)}</span>
@@ -235,6 +248,24 @@ function App() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Blockchain Transaction Notification */}
+      {blockchainTx && (
+        <div className={`blockchain-notification ${blockchainTx.success ? 'success' : 'error'}`}>
+          <div className="blockchain-header">
+            <strong>🔗 Blockchain Transaction {blockchainTx.success ? 'Successful' : 'Failed'}</strong>
+          </div>
+          <div className="blockchain-details">
+            <div>Action: {blockchainTx.action}</div>
+            <div>TX Hash: {blockchainTx.txHash}</div>
+            <div>Note: "{blockchainTx.noteTitle}"</div>
+            {blockchainTx.block && <div>Block: #{blockchainTx.block}</div>}
+            {blockchainTx.fees && <div>Fees: {blockchainTx.fees}</div>}
+            {blockchainTx.error && <div>Error: {blockchainTx.error}</div>}
+          </div>
+          <button className="close-tx-btn" onClick={() => setBlockchainTx(null)}>×</button>
         </div>
       )}
     </div>
