@@ -7,9 +7,9 @@ const API_URL = "http://localhost:5000/api/notes";
 
 function App() {
   const [notes, setNotes] = useState(() => {
-  const savedNotes = localStorage.getItem('notesData');
-  return savedNotes ? JSON.parse(savedNotes) : [];
-});
+    const savedNotes = localStorage.getItem('notesData');
+    return savedNotes ? JSON.parse(savedNotes) : [];
+  });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isViewMode, setIsViewMode] = useState(false);
@@ -17,9 +17,9 @@ function App() {
   const [currentNote, setCurrentNote] = useState({ title: "", content: "" });
   const [blockchainTx, setBlockchainTx] = useState(null);
   const [txDetails, setTxDetails] = useState(null);
-  
+
   // Wallet State
-    const [wallet, setWallet] = useState(() => {
+  const [wallet, setWallet] = useState(() => {
     const savedWallet = localStorage.getItem('walletState');
     return savedWallet ? JSON.parse(savedWallet) : {
       connected: false,
@@ -31,44 +31,76 @@ function App() {
   const [isConnecting, setIsConnecting] = useState(false);
 
   // Check for Cardano wallets on component mount
+  useEffect(() => {
+    localStorage.setItem('walletState', JSON.stringify(wallet));
+  }, [wallet]);
+
   // Save notes to localStorage whenever they change
-useEffect(() => {
-  if (notes.length > 0) {
-    localStorage.setItem('notesData', JSON.stringify(notes));
-  }
-}, [notes]);
+  useEffect(() => {
+    if (notes.length > 0) {
+      localStorage.setItem('notesData', JSON.stringify(notes));
+    }
+  }, [notes]);
 
-  
-    
-  
+  // Fetch notes from API on mount
+  useEffect(() => {
+    fetchNotes();
+  }, []);
 
+  const checkForWallets = () => {
+    // Check if any Cardano wallet is available
+    const hasWallet = window.cardano && (
+      window.cardano.lace ||
+      window.cardano.eternl ||
+      window.cardano.nami ||
+      window.cardano.flint
+    );
+
+
+    console.log("Cardano wallets detected:", {
+      lace: !!window.cardano?.lace,
+      eternl: !!window.cardano?.eternl,
+      nami: !!window.cardano?.nami,
+      flint: !!window.cardano?.flint
+    });
+  };
+
+
+  const fetchNotes = async () => {
+    try {
+      const res = await axios.get(API_URL);
+      setNotes(res.data);
+    } catch (err) {
+      console.error("Error fetching notes:", err);
+    }
+  };
 
   // SIMPLIFIED WALLET CONNECTION
-const connectWallet = async () => {
-  setIsConnecting(true);
-  
-  // Simulate connection delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  
-  try {
-    // YOUR REAL LACE WALLET ADDRESS
-    const realLaceAddress = "addr_test1qzvm86qhp7urr3c3cx0cnv75jzf66c6ckymklvac8stae7snytz2v66nhn7qffp7lln5xw427rlmup4ng6u5ejywaa0qwgxfn5";
-    
-    setWallet({
-      connected: true,
-      address: realLaceAddress, // YOUR REAL ADDRESS
-      name: "Lace Wallet",
-      balance: "100.50 ADA"
-    });
-    
-    console.log("✅ Wallet connected (simulation with real address):", realLaceAddress);
-    
-  } catch (error) {
-    console.error("Wallet connection failed:", error);
-  } finally {
-    setIsConnecting(false);
-  }
-};
+  const connectWallet = async () => {
+    setIsConnecting(true);
+
+    // Simulate connection delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    try {
+      // YOUR REAL LACE WALLET ADDRESS
+      const realLaceAddress = "addr_test1qqar6m6kk3xkjhwnf5zanwrf7glmjrz2edsp3ucasjz25zua96xxg37tr4zypfygdj9yhwpq0gj6zzk0p082w66657pqrm2pv3";
+
+      setWallet({
+        connected: true,
+        address: realLaceAddress, // YOUR REAL ADDRESS
+        name: "Lace Wallet",
+        balance: "100.50 ADA"
+      });
+
+      console.log("✅ Wallet connected (simulation with real address):", realLaceAddress);
+
+    } catch (error) {
+      console.error("Wallet connection failed:", error);
+    } finally {
+      setIsConnecting(false);
+    }
+  };
 
   const disconnectWallet = () => {
     setWallet({
@@ -103,82 +135,81 @@ const connectWallet = async () => {
     setIsViewMode(true);
   };
   const updateWalletBalance = (fees) => {
-  if (wallet.connected) {
-    try {
-      // Extract the fee amount from string like "1.42 ADA"
-      const feeAmount = parseFloat(fees.split(' ')[0]);
-      const currentBalance = parseFloat(wallet.balance.split(' ')[0]);
-      const newBalance = Math.max(0, (currentBalance - feeAmount).toFixed(2)); // Prevent negative balance
-      
-      const updatedWallet = {
-        ...wallet,
-        balance: `${newBalance} ADA`
-      };
-      
-      setWallet(updatedWallet);
-      // Save to localStorage immediately
-      localStorage.setItem('walletState', JSON.stringify(updatedWallet));
-      
-      console.log(`💰 Balance updated: -${feeAmount} ADA = ${newBalance} ADA remaining`);
-    } catch (error) {
-      console.error("Error updating balance:", error);
+    if (wallet.connected) {
+      try {
+        const feeAmount = parseFloat(fees.split(' ')[0]);
+        const currentBalance = parseFloat(wallet.balance.split(' ')[0]);
+        const newBalance = Math.max(0, (currentBalance - feeAmount).toFixed(2));
+
+        const updatedWallet = {
+          ...wallet,
+          balance: `${newBalance} ADA`
+        };
+
+        setWallet(updatedWallet);
+        localStorage.setItem('walletState', JSON.stringify(updatedWallet));
+
+        console.log(`💰 Balance updated: -${feeAmount} ADA = ${newBalance} ADA remaining`);
+      } catch (error) {
+        console.error("Error updating balance:", error);
+      }
     }
-  }
-};
+  };
+
   const handleSave = async () => {
-  if (!currentNote.title.trim() || !currentNote.content.trim()) return;
+    if (!currentNote.title.trim() || !currentNote.content.trim()) return;
 
-  try {
-    let result;
-    const noteData = {
-      ...currentNote,
-      walletAddress: wallet.address
-    };
+    try {
+      let result;
+      const noteData = {
+        ...currentNote,
+        walletAddress: wallet.address
+      };
 
-    if (isEditMode) {
-      const res = await axios.put(`${API_URL}/${currentNote.id}`, noteData);
-      result = res.data;
-      setNotes(notes.map((n) => (n.id === currentNote.id ? result : n)));
-    } else {
-      const res = await axios.post(API_URL, noteData);
-      result = res.data;
-      setNotes([result, ...notes]);
-    }
-    
-    // Show blockchain transaction result
-    if (result.blockchain) {
-      setBlockchainTx(result.blockchain);
-      // UPDATE BALANCE WITH FEES
-      updateWalletBalance(result.blockchain.fees);
-      setTimeout(() => setBlockchainTx(null), 5000);
-    }
-    
-    closeModal();
-  } catch (err) {
-    console.error("Error saving note:", err);
-    alert("Error saving note. Please try again.");
-  }
-};
+      if (isEditMode) {
+        const res = await axios.put(`${API_URL}/${currentNote.id}`, noteData);
+        result = res.data;
+        setNotes(notes.map((n) => (n.id === currentNote.id ? result : n)));
+      } else {
+        const res = await axios.post(API_URL, noteData);
+        result = res.data;
+        setNotes([result, ...notes]);
+      }
 
-// Do the same for handleDelete
-const handleDelete = async () => {
-  try {
-    const res = await axios.delete(`${API_URL}/${currentNote.id}`);
-    
-    // Show blockchain transaction result
-    if (res.data.blockchain) {
-      setBlockchainTx(res.data.blockchain);
-      // UPDATE BALANCE WITH FEES
-      updateWalletBalance(res.data.blockchain.fees);
-      setTimeout(() => setBlockchainTx(null), 5000);
+      // Show blockchain transaction result
+      if (result.blockchain) {
+        setBlockchainTx(result.blockchain);
+        // UPDATE BALANCE WITH FEES
+        updateWalletBalance(result.blockchain.fees);
+        setTimeout(() => setBlockchainTx(null), 5000);
+      }
+
+      closeModal();
+    } catch (err) {
+      console.error("Error saving note:", err);
+      alert("Error saving note. Please try again.");
     }
-    
-    setNotes(notes.filter((n) => n.id !== currentNote.id));
-    closeModal();
-  } catch (err) {
-    console.error("Error deleting note:", err);
-  }
-};
+  };
+
+  // Do the same for handleDelete
+  const handleDelete = async () => {
+    try {
+      const res = await axios.delete(`${API_URL}/${currentNote.id}`);
+
+      // Show blockchain transaction result
+      if (res.data.blockchain) {
+        setBlockchainTx(res.data.blockchain);
+        // UPDATE BALANCE WITH FEES
+        updateWalletBalance(res.data.blockchain.fees);
+        setTimeout(() => setBlockchainTx(null), 5000);
+      }
+
+      setNotes(notes.filter((n) => n.id !== currentNote.id));
+      closeModal();
+    } catch (err) {
+      console.error("Error deleting note:", err);
+    }
+  };
 
   const closeModal = () => {
     setIsModalOpen(false);
@@ -203,52 +234,59 @@ const handleDelete = async () => {
   };
 
   // Check if any Cardano wallets are available
-  
+  const hasWallets = window.cardano && (
+    window.cardano.lace ||
+    window.cardano.eternl ||
+    window.cardano.nami ||
+    window.cardano.flint
+  );
+
+
   return (
     <div className="app-wrapper">
       {/* Header */}
       <div className="header">
-        <h1>Quick Notes + Blockchain</h1>
+        <h1>Note Buddy</h1>
         <div className="header-actions">
 
-{/* WALLET CONNECTION */}
-{!wallet.connected ? (
-  <div className="wallet-connection">
-    <button 
-      className={`connect-wallet-btn ${isConnecting ? 'connecting' : ''}`}
-      onClick={connectWallet}
-      disabled={isConnecting}
-    >
-      {isConnecting ? (
-        <>
-          <div className="spinner"></div>
-          Connecting...
-        </>
-      ) : (
-        <>
-          <FaWallet /> Connect Lace Wallet
-        </>
-      )}
-    </button>
-  </div>
-) : (
-  <div className="wallet-info real-wallet">
-    <div className="wallet-header">
-      <span className="wallet-name">🟣 {wallet.name}</span>
-      <button className="disconnect-btn" onClick={disconnectWallet}>
-        Disconnect
-      </button>
-    </div>
-    <div className="wallet-details">
-      <span className="wallet-address">
-        {wallet.address.slice(0, 10)}...{wallet.address.slice(-8)}
-      </span>
-      <span className="wallet-balance">{wallet.balance}</span>
-    </div>
-  </div>
-)}
-          
-          <button 
+          {/* WALLET CONNECTION */}
+          {!wallet.connected ? (
+            <div className="wallet-connection">
+              <button
+                className={`connect-wallet-btn ${isConnecting ? 'connecting' : ''}`}
+                onClick={connectWallet}
+                disabled={isConnecting}
+              >
+                {isConnecting ? (
+                  <>
+                    <div className="spinner"></div>
+                    Connecting...
+                  </>
+                ) : (
+                  <>
+                    <FaWallet /> Connect Lace Wallet
+                  </>
+                )}
+              </button>
+            </div>
+          ) : (
+            <div className="wallet-info real-wallet">
+              <div className="wallet-header">
+                <span className="wallet-name">🟣 {wallet.name}</span>
+                <button className="disconnect-btn" onClick={disconnectWallet}>
+                  Disconnect
+                </button>
+              </div>
+              <div className="wallet-details">
+                <span className="wallet-address">
+                  {wallet.address.slice(0, 10)}...{wallet.address.slice(-8)}
+                </span>
+                <span className="wallet-balance">{wallet.balance}</span>
+              </div>
+            </div>
+          )}
+
+          <button
             className={`add-note-btn ${!wallet.connected ? 'disabled' : ''}`}
             onClick={openAddModal}
             disabled={!wallet.connected}
@@ -264,8 +302,8 @@ const handleDelete = async () => {
         {notes.length === 0 ? (
           <div className="no-notes-container">
             <p className="no-notes">
-              {wallet.connected 
-                ? "No notes yet. Create your first note!" 
+              {wallet.connected
+                ? "No notes yet. Create your first note!"
                 : "Connect your wallet to view and create notes"}
             </p>
           </div>
@@ -284,8 +322,8 @@ const handleDelete = async () => {
                 >
                   {/* Blockchain Verification Badge */}
                   {note.blockchain?.success && (
-                    <span 
-                      className="blockchain-badge" 
+                    <span
+                      className="blockchain-badge"
                       title="Verified on Cardano Blockchain"
                       onClick={(e) => {
                         e.stopPropagation();
@@ -417,8 +455,8 @@ const handleDelete = async () => {
         <div className={`blockchain-notification ${blockchainTx.success ? 'success' : 'error'}`}>
           <div className="blockchain-header">
             <strong>🔗 Blockchain Transaction {blockchainTx.success ? 'Successful' : 'Failed'}</strong>
-            <button 
-              className="view-details-btn" 
+            <button
+              className="view-details-btn"
               onClick={() => setTxDetails(blockchainTx)}
             >
               View Details
@@ -438,7 +476,7 @@ const handleDelete = async () => {
           <button className="close-tx-btn" onClick={() => setBlockchainTx(null)}>×</button>
         </div>
       )}
-      
+
 
       {/* Transaction Details Modal */}
       {txDetails && (
@@ -447,37 +485,37 @@ const handleDelete = async () => {
             <h2>🔗 Blockchain Transaction Details</h2>
             <div className="tx-details">
               <div className="tx-field">
-                <strong>Action:</strong> 
+                <strong>Action:</strong>
                 <span className={`tx-action ${txDetails.action.toLowerCase()}`}>
                   {txDetails.action}
                 </span>
               </div>
               <div className="tx-field">
-                <strong>Transaction Hash:</strong> 
+                <strong>Transaction Hash:</strong>
                 <code>{txDetails.txHash}</code>
               </div>
               <div className="tx-field">
-                <strong>Block:</strong> 
+                <strong>Block:</strong>
                 <span className="block-number">#{txDetails.block}</span>
               </div>
               <div className="tx-field">
-                <strong>Fees:</strong> 
+                <strong>Fees:</strong>
                 <span className="fees">{txDetails.fees}</span>
               </div>
               <div className="tx-field">
-                <strong>Timestamp:</strong> 
+                <strong>Timestamp:</strong>
                 <span>{new Date(txDetails.timestamp).toLocaleString()}</span>
               </div>
               <div className="tx-field">
-                <strong>Wallet:</strong> 
+                <strong>Wallet:</strong>
                 <span className="wallet-address-display">
                   {txDetails.walletAddress || "Unknown"}
                 </span>
               </div>
               <div className="tx-field">
-                <strong>Status:</strong> 
+                <strong>Status:</strong>
                 <span className={`status ${txDetails.success ? 'confirmed' : 'failed'}`}>
-                  {txDetails.success ? '✅ Confirmed' : '❌ Failed'}
+                  {txDetails.success ? 'Confirmed' : 'Failed'}
                 </span>
               </div>
               {txDetails.metadata && (
@@ -499,7 +537,7 @@ const handleDelete = async () => {
       )}
     </div>
   );
-  
+
 }
 
 export default App;
