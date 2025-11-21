@@ -6,7 +6,14 @@ html, body { height: 100%; }
 body {
   margin: 0;
   font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-  background: #f7f8fb;
+  background: #fffbe6;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.03) 0,
+    rgba(0,0,0,0.03) 1px,
+    transparent 1px,
+    transparent 24px
+  );
   color: #111827;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -15,41 +22,41 @@ body {
 /* app centered column */
 .app-wrapper {
   max-width: 1100px;
-  margin: 0 auto;         /* center page column */
+  margin: 0 auto;
   padding: 32px 20px;
 }
 
-/* Header: title left, button right - perfectly aligned with .app-wrapper */
+/* Header */
 .header {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 50px;
+  margin-top: 50px;
   gap: 12px;
 }
 
 .header h1 {
   margin: 0;
-  font-size: 28px;
+  font-size: 40px;
   font-weight: 700;
   color: #0f172a;
 }
 
-/* support both classnames: save-btn or add-note-btn */
 .save-btn, .add-note-btn {
-  background: #6366f1;
+  background: #fbbf24; /* Yellow button */
   color: #fff;
   border: none;
-  padding: 8px 14px;
+  padding: 15px 20px;
   border-radius: 10px;
   cursor: pointer;
   font-weight: 600;
-  box-shadow: 0 2px 6px rgba(99,102,241,0.18);
+  box-shadow: 0 2px 6px rgba(251,191,36,0.3);
 }
-.save-btn:hover, .add-note-btn:hover { background: #4f46e5; }
+.save-btn:hover, .add-note-btn:hover { background: #f59e0b; } /* Darker yellow on hover */
 
-/* notes grid aligned with wrapper */
+/* notes grid */
 .notes-grid {
   display: grid;
   gap: 16px;
@@ -59,16 +66,27 @@ body {
 
 /* note card */
 .note-card {
-  background: #fff;
+  background: #fefefe; /* Slightly off-white for a more authentic paper feel */
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.04) 0, /* Slightly darker lines for better visibility */
+    rgba(0,0,0,0.04) 1px,
+    transparent 1px,
+    transparent 24px
+  );
   border-radius: 14px;
-  padding: 14px;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+  padding: 20px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12), 0 2px 4px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.8); /* Added inset highlight for paper texture */
   display: flex;
   flex-direction: column;
-  min-height: 150px;
+  min-height: 220px;
   transition: transform .12s ease, box-shadow .12s ease;
+  border: 1px solid rgba(0,0,0,0.08); /* Subtle border for paper edge */
 }
-.note-card:hover { transform: translateY(-4px); box-shadow: 0 10px 28px rgba(15,23,42,0.10); }
+.note-card:hover { 
+  transform: translateY(-6px); 
+  box-shadow: 0 12px 32px rgba(15,23,42,0.15), 0 4px 8px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9); /* Enhanced inset on hover */
+}
 
 .note-card-header {
   display: flex;
@@ -80,59 +98,67 @@ body {
 .note-title { margin: 0; font-size: 1.02rem; font-weight: 700; color:#0f172a; cursor: pointer; }
 .note-content { margin: 0; color: #374151; line-height: 1.45; font-size: 0.95rem; }
 
+.note-dates {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.3;
+  font-style: italic;
+}
+
 /* action buttons in card */
 .note-actions { display:flex; gap:8px; align-items:center; }
-.note-actions button { background: transparent; border: none; cursor: pointer; font-size: 1.05rem; }
+.note-actions button { 
+  background: transparent; 
+  border: none; 
+  cursor: pointer; 
+  font-size: 1.05rem; 
+  color: #000000; /* Yellow icons */
+  transition: color 0.2s ease;
+}
+.note-actions button:hover { color: #f59e0b; } /* Darker yellow on hover */
 
-/* ========== MODAL / OVERLAY ========== */
-/* supports both className="modal" (as overlay) or className="modal-overlay" */
+/* MODAL */
 .modal, .modal-overlay {
   position: fixed;
-  inset: 0;                      /* top:0; left:0; bottom:0; right:0; */
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(15, 23, 42, 0.55);
+  background: rgba(15, 23, 42, 0.6); /* Slightly darker overlay for better contrast */
+  backdrop-filter: blur(2px); /* Added subtle blur for a modern paper-like depth */
   z-index: 1200;
-  padding: 20px;                 /* prevents modal touching edges on small screens */
+  padding: 20px;
 }
 
-/* inner modal card: supports className="modal-content" or className="modal" as inner if you use different naming */
-.modal-content, .modal-card, .modal > .modal-inner {
-  background: #ffffff;
+.modal-content {
+  background: #fefefe; /* Matching off-white for consistency */
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.04) 0,
+    rgba(0,0,0,0.04) 1px,
+    transparent 1px,
+    transparent 24px
+  );
   border-radius: 12px;
   width: 100%;
   max-width: 620px;
-  padding: 20px 22px;
-  box-shadow: 0 18px 40px rgba(2,6,23,0.35);
+  min-height: 600px;
+  padding: 30px 26px;
+  box-shadow: 0 20px 48px rgba(2,6,23,0.4), 0 4px 12px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.8); /* Added inset for texture */
   box-sizing: border-box;
+  border: 1px solid rgba(0,0,0,0.08);
 }
 
-/* modal title */
-.modal-content h2,
-.modal-card h2 {
+.modal-content h2 {
   margin: 0 0 12px 0;
   font-size: 20px;
   font-weight: 700;
   color: #0f172a;
 }
 
-/* MAKE FORM STACK VERTICALLY inside modal */
-.modal-content form,
-.modal-card form,
-.modal > .modal-inner form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-/* input / textarea full width */
 .modal-content .note-input,
-.modal-card .note-input,
-.modal-content .note-textarea,
-.modal-card .note-textarea,
-.modal > .modal-inner input,
-.modal > .modal-inner textarea {
+.modal-content .note-textarea {
   width: 100%;
   font-size: 15px;
   padding: 10px 12px;
@@ -142,31 +168,34 @@ body {
   transition: box-shadow .12s ease, border-color .12s ease;
 }
 .modal-content .note-input:focus,
-.modal-card .note-input:focus,
-.modal-content .note-textarea:focus { border-color: #6366f1; box-shadow: 0 6px 18px rgba(99,102,241,0.08); }
+.modal-content .note-textarea:focus {
+  border-color: #fbbf24; /* Yellow focus border */
+  box-shadow: 0 6px 18px rgba(251,191,36,0.2);
+}
 
-.modal-content .note-textarea,
-.modal-card .note-textarea {
-  min-height: 140px;
+.modal-content .note-textarea {
+  min-height: 500px;
   resize: vertical;
 }
 
-/* modal buttons row */
-.modal-actions, .modal-buttons {
+/* modal buttons */
+.modal-buttons {
   display:flex;
   justify-content: flex-end;
   gap: 10px;
   margin-top: 6px;
 }
 .save-btn, .confirm-btn {
-  background: #10b981;
+  background: #fbbf24; /* Yellow button */
   color:white;
   border:none;
   padding: 8px 12px;
   border-radius: 8px;
   cursor:pointer;
   font-weight: 600;
+  box-shadow: 0 2px 4px rgba(251,191,36,0.3);
 }
+.save-btn:hover, .confirm-btn:hover { background: #f59e0b; }
 .cancel-btn {
   background: #f3f4f6;
   border: none;
@@ -175,9 +204,303 @@ body {
   cursor: pointer;
 }
 
-/* responsive adjustments */
+/* responsive */
 @media (max-width: 560px) {
   .app-wrapper { padding: 20px 12px; }
-  .modal-content, .modal-card { padding: 16px; }
+  .modal-content { padding: 16px; }
   .header h1 { font-size: 20px; }
+}
+
+/* Blockchain Notification Styles */
+.blockchain-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: white;
+  border-left: 4px solid #0e5711;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  max-width: 400px;
+  z-index: 1000;
+}
+
+.blockchain-notification.error {
+  border-left-color: #f44336;
+}
+
+.blockchain-header {
+  display: flex;
+  justify-content: between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.blockchain-details {
+  font-size: 12px;
+  color: #666;
+}
+
+.blockchain-details div {
+  margin: 2px 0;
+  word-break: break-all;
+}
+
+.close-tx-btn {
+  position: absolute;
+  top: 5px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: #999;
+}
+/* NEW: Header Actions Layout */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+/* NEW: Wallet Connection Styles */
+.connect-wallet-btn {
+  background: #fbbf24; /* Yellow button */
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  box-shadow: 0 2px 4px rgba(251,191,36,0.3);
+}
+
+.connect-wallet-btn:hover {
+  background: #f59e0b;
+}
+
+.wallet-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wallet-address {
+  background: #e3f2fd;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 14px;
+  color: #1565c0;
+}
+
+.disconnect-btn {
+  background: #f44336;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+/* NEW: Blockchain Verification Badge */
+.blockchain-badge {
+  background: #fbbf24; /* Yellow badge */
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.7em;
+  margin-right: 8px;
+  cursor: pointer;
+  border: none;
+}
+
+.blockchain-badge:hover {
+  background: #f59e0b;
+  transform: scale(1.05);
+}
+
+/* NEW: View Details Button in Notifications */
+.view-details-btn {
+  background: transparent;
+  border: 1px solid #fbbf24; /* Yellow border */
+  color: #fbbf24; /* Yellow text */
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  margin-left: 10px;
+  cursor: pointer;
+}
+
+.view-details-btn:hover {
+  background: #fbbf24;
+  color: white;
+}
+
+/* NEW: Transaction Details Modal */
+.tx-details-modal {
+  max-width: 600px;
+}
+
+.tx-details {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  margin: 15px 0;
+  border-left: 4px solid #fbbf24; /* Yellow accent */
+}
+
+.tx-field {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 10px 0;
+  padding: 8px 0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.tx-field:last-child {
+  border-bottom: none;
+}
+
+.tx-action {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 0.9em;
+}
+
+.tx-action.create { background: #e8f5e8; color: #2e7d32; }
+.tx-action.update { background: #e3f2fd; color: #1565c0; }
+.tx-action.delete { background: #ffebee; color: #c62828; }
+
+.block-number {
+  color: #7b1fa2;
+  font-weight: bold;
+}
+
+.fees {
+  color: #f57c00;
+  font-weight: bold;
+}
+
+.status.confirmed { 
+  color: #4CAF50; 
+  font-weight: bold;
+}
+
+.status.failed { 
+  color: #f44336; 
+  font-weight: bold;
+}
+
+.metadata-section {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 2px solid #e0e0e0;
+}
+
+.metadata-json {
+  background: white;
+  padding: 15px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  overflow-x: auto;
+  border: 1px solid #ddd;
+  margin-top: 10px;
+}
+
+/* Make note actions flex better */
+.note-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Lace Wallet Styles */
+.connect-wallet-btn {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); /* Yellow gradient */
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+}
+
+.connect-wallet-btn:hover:not(.connecting) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(251,191,36,0.4);
+}
+
+.connect-wallet-btn.connecting {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+.real-wallet {
+  background: white;
+  border: 2px solid #e9ecef;
+  border-radius: 10px;
+  padding: 12px;
+  min-width: 250px;
+}
+
+.wallet-header {
+  display: flex;
+  justify-content: between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.wallet-name {
+  font-weight: bold;
+  color: #764ba2;
+}
+
+.disconnect-btn {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.wallet-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wallet-address {
+  font-family: monospace;
+  font-size: 12px;
+  color: #495057;
+  background: #f8f9fa;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.wallet-balance {
+  font-weight: bold;
+  color: #28a745;
+  font-size: 14px;
+}
+
+.wallet-required-banner {
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 15px 0;
+  text-align: center;
+  color: #856404;
 }

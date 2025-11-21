@@ -1,628 +1,543 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { FaPen, FaTrash, FaWallet } from "react-icons/fa";
 import "./index.css";
 
 const API_URL = "http://localhost:5000/api/notes";
 
-const App = () => {
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [notes, setNotes] = useState([]);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [editingNote, setEditingNote] = useState(null);
-  const [notification, setNotification] = useState(null);
+function App() {
+  const [notes, setNotes] = useState(() => {
+    const savedNotes = localStorage.getItem('notesData');
+    return savedNotes ? JSON.parse(savedNotes) : [];
+  });
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [isViewMode, setIsViewMode] = useState(false);
+  const [isDeleteConfirm, setIsDeleteConfirm] = useState(false);
+  const [currentNote, setCurrentNote] = useState({ title: "", content: "" });
+  const [blockchainTx, setBlockchainTx] = useState(null);
+  const [txDetails, setTxDetails] = useState(null);
 
-  useEffect(() => {
-    const fetchNotes = async () => {
-      try {
-        const res = await axios.get(API_URL);
-        // Map backend timestamps to UI-friendly fields
-        const mapped = res.data.map((n) => ({
-          id: n.id,
-          title: n.title,
-          content: n.content,
-          createdAt: n.created_at || n.createdAt,
-          updatedAt: n.updated_at || n.updatedAt,
-        }));
-        setNotes(mapped);
-      } catch (err) {
-        console.error("Error fetching notes:", err);
-      }
+  // Wallet State
+  const [wallet, setWallet] = useState(() => {
+    const savedWallet = localStorage.getItem('walletState');
+    return savedWallet ? JSON.parse(savedWallet) : {
+      connected: false,
+      address: "",
+      name: "",
+      balance: "0 ADA"
     };
+  });
+  const [isConnecting, setIsConnecting] = useState(false);
+
+  // Check for Cardano wallets on component mount
+  useEffect(() => {
+    localStorage.setItem('walletState', JSON.stringify(wallet));
+  }, [wallet]);
+
+  // Save notes to localStorage whenever they change
+  useEffect(() => {
+    if (notes.length > 0) {
+      localStorage.setItem('notesData', JSON.stringify(notes));
+    }
+  }, [notes]);
+
+  // Fetch notes from API on mount
+  useEffect(() => {
     fetchNotes();
   }, []);
 
-  const showNotification = (type, nTitle, subtitle) => {
-    setNotification({ type, title: nTitle, subtitle });
-    setTimeout(() => setNotification(null), 4000);
+  const checkForWallets = () => {
+    // Check if any Cardano wallet is available
+    const hasWallet = window.cardano && (
+      window.cardano.lace ||
+      window.cardano.eternl ||
+      window.cardano.nami ||
+      window.cardano.flint
+    );
+
+
+    console.log("Cardano wallets detected:", {
+      lace: !!window.cardano?.lace,
+      eternl: !!window.cardano?.eternl,
+      nami: !!window.cardano?.nami,
+      flint: !!window.cardano?.flint
+    });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!title.trim() || !content.trim()) return;
 
+  const fetchNotes = async () => {
     try {
-      if (editingNote) {
-        // Update existing note in backend
-        await axios.put(`${API_URL}/${editingNote.id}`, { title, content });
-        const updatedNotes = notes.map((note) =>
-          note.id === editingNote.id
-            ? { ...note, title, content, updatedAt: new Date().toLocaleString() }
-            : note
-        );
-        setNotes(updatedNotes);
-        showNotification("success", "Note updated", "your change was saved");
-        setEditingNote(null);
-      } else {
-        // Create new note in backend
-        const res = await axios.post(API_URL, { title, content });
-        const newNote = {
-          id: res.data.id,
-          title: res.data.title,
-          content: res.data.content,
-          createdAt: new Date().toLocaleString(),
-        };
-        setNotes([newNote, ...notes]);
-        showNotification("success", "Note added", "your note has been saved successfully");
-      }
-
-      setTitle("");
-      setContent("");
-      setShowAddForm(false);
-    } catch (error) {
-      console.error("Error saving note:", error);
+      const res = await axios.get(API_URL);
+      setNotes(res.data);
+    } catch (err) {
+      console.error("Error fetching notes:", err);
     }
   };
 
-  const handleEdit = (note) => {
-    setEditingNote(note);
-    setTitle(note.title);
-    setContent(note.content);
-    setShowAddForm(true);
+  // SIMPLIFIED WALLET CONNECTION
+  const connectWallet = async () => {
+    setIsConnecting(true);
+
+    // Simulate connection delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    try {
+      // YOUR REAL LACE WALLET ADDRESS
+      const realLaceAddress = "addr_test1qqar6m6kk3xkjhwnf5zanwrf7glmjrz2edsp3ucasjz25zua96xxg37tr4zypfygdj9yhwpq0gj6zzk0p082w66657pqrm2pv3";
+
+      setWallet({
+        connected: true,
+        address: realLaceAddress, // YOUR REAL ADDRESS
+        name: "Lace Wallet",
+        balance: "100.50 ADA"
+      });
+
+      console.log("✅ Wallet connected (simulation with real address):", realLaceAddress);
+
+    } catch (error) {
+      console.error("Wallet connection failed:", error);
+    } finally {
+      setIsConnecting(false);
+    }
   };
 
-  const handleDelete = async (noteId) => {
+  const disconnectWallet = () => {
+    setWallet({
+      connected: false,
+      address: "",
+      name: "",
+      balance: "0 ADA"
+    });
+    localStorage.removeItem('walletState');
+    console.log("Wallet disconnected");
+  };
+
+  const openAddModal = () => {
+    if (!wallet.connected) {
+      alert("Please connect your wallet first to save notes to the blockchain!");
+      return;
+    }
+    setCurrentNote({ title: "", content: "" });
+    setIsEditMode(false);
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (note) => {
+    setCurrentNote(note);
+    setIsEditMode(true);
+    setIsModalOpen(true);
+    setIsViewMode(false);
+  };
+
+  const openViewModal = (note) => {
+    setCurrentNote(note);
+    setIsViewMode(true);
+  };
+  const updateWalletBalance = (fees) => {
+    if (wallet.connected) {
+      try {
+        const feeAmount = parseFloat(fees.split(' ')[0]);
+        const currentBalance = parseFloat(wallet.balance.split(' ')[0]);
+        const newBalance = Math.max(0, (currentBalance - feeAmount).toFixed(2));
+
+        const updatedWallet = {
+          ...wallet,
+          balance: `${newBalance} ADA`
+        };
+
+        setWallet(updatedWallet);
+        localStorage.setItem('walletState', JSON.stringify(updatedWallet));
+
+        console.log(`💰 Balance updated: -${feeAmount} ADA = ${newBalance} ADA remaining`);
+      } catch (error) {
+        console.error("Error updating balance:", error);
+      }
+    }
+  };
+
+  const handleSave = async () => {
+    if (!currentNote.title.trim() || !currentNote.content.trim()) return;
+
     try {
-      await axios.delete(`${API_URL}/${noteId}`);
-      setNotes(notes.filter((note) => note.id !== noteId));
-      showNotification("success", "Note removed", "the note has been removed");
+      let result;
+      const noteData = {
+        ...currentNote,
+        walletAddress: wallet.address
+      };
+
+      if (isEditMode) {
+        const res = await axios.put(`${API_URL}/${currentNote.id}`, noteData);
+        result = res.data;
+        setNotes(notes.map((n) => (n.id === currentNote.id ? result : n)));
+      } else {
+        const res = await axios.post(API_URL, noteData);
+        result = res.data;
+        setNotes([result, ...notes]);
+      }
+
+      // Show blockchain transaction result
+      if (result.blockchain) {
+        setBlockchainTx(result.blockchain);
+        // UPDATE BALANCE WITH FEES
+        updateWalletBalance(result.blockchain.fees);
+        setTimeout(() => setBlockchainTx(null), 5000);
+      }
+
+      closeModal();
+    } catch (err) {
+      console.error("Error saving note:", err);
+      alert("Error saving note. Please try again.");
+    }
+  };
+
+  // Do the same for handleDelete
+  const handleDelete = async () => {
+    try {
+      const res = await axios.delete(`${API_URL}/${currentNote.id}`);
+
+      // Show blockchain transaction result
+      if (res.data.blockchain) {
+        setBlockchainTx(res.data.blockchain);
+        // UPDATE BALANCE WITH FEES
+        updateWalletBalance(res.data.blockchain.fees);
+        setTimeout(() => setBlockchainTx(null), 5000);
+      }
+
+      setNotes(notes.filter((n) => n.id !== currentNote.id));
+      closeModal();
     } catch (err) {
       console.error("Error deleting note:", err);
     }
   };
 
   const closeModal = () => {
-    setShowAddForm(false);
-    setEditingNote(null);
-    setTitle("");
-    setContent("");
+    setIsModalOpen(false);
+    setIsViewMode(false);
+    setIsDeleteConfirm(false);
   };
 
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "";
+    const options = {
+      month: "2-digit",
+      day: "2-digit",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+      timeZone: "Asia/Manila",
+    };
+    return new Date(dateStr)
+      .toLocaleString("en-US", options)
+      .replace(",", " at");
+  };
+
+  // Check if any Cardano wallets are available
+  const hasWallets = window.cardano && (
+    window.cardano.lace ||
+    window.cardano.eternl ||
+    window.cardano.nami ||
+    window.cardano.flint
+  );
+
+
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        backgroundColor: "#f8fafc",
-        fontFamily:
-          '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      }}
-    >
+    <div className="app-wrapper">
       {/* Header */}
-      <div
-        style={{
-          padding: "24px 32px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          borderBottom: "1px solid #e2e8f0",
-          backgroundColor: "#ffffff",
-        }}
-      >
-        <h1
-          style={{
-            fontSize: "32px",
-            fontWeight: "700",
-            color: "#1e293b",
-            margin: 0,
-          }}
-        >
-          Quick Notes
-        </h1>
-        <button
-          onClick={() => setShowAddForm(true)}
-          style={{
-            background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
-            color: "#ffffff",
-            border: "none",
-            borderRadius: "12px",
-            padding: "12px 20px",
-            fontSize: "14px",
-            fontWeight: "500",
-            cursor: "pointer",
-            transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1)",
-          }}
-          onMouseOver={(e) => {
-            e.target.style.transform = "translateY(-1px)";
-            e.target.style.boxShadow = "0 10px 25px 0 rgba(99, 102, 241, 0.3)";
-          }}
-          onMouseOut={(e) => {
-            e.target.style.transform = "translateY(0)";
-            e.target.style.boxShadow = "0 1px 3px 0 rgba(0, 0, 0, 0.1)";
-          }}
-        >
-          + Add Note
-        </button>
+      <div className="header">
+        <h1>Note Buddy</h1>
+        <div className="header-actions">
+
+          {/* WALLET CONNECTION */}
+          {!wallet.connected ? (
+            <div className="wallet-connection">
+              <button
+                className={`connect-wallet-btn ${isConnecting ? 'connecting' : ''}`}
+                onClick={connectWallet}
+                disabled={isConnecting}
+              >
+                {isConnecting ? (
+                  <>
+                    <div className="spinner"></div>
+                    Connecting...
+                  </>
+                ) : (
+                  <>
+                    <FaWallet /> Connect Lace Wallet
+                  </>
+                )}
+              </button>
+            </div>
+          ) : (
+            <div className="wallet-info real-wallet">
+              <div className="wallet-header">
+                <span className="wallet-name">🟣 {wallet.name}</span>
+                <button className="disconnect-btn" onClick={disconnectWallet}>
+                  Disconnect
+                </button>
+              </div>
+              <div className="wallet-details">
+                <span className="wallet-address">
+                  {wallet.address.slice(0, 10)}...{wallet.address.slice(-8)}
+                </span>
+                <span className="wallet-balance">{wallet.balance}</span>
+              </div>
+            </div>
+          )}
+
+          <button
+            className={`add-note-btn ${!wallet.connected ? 'disabled' : ''}`}
+            onClick={openAddModal}
+            disabled={!wallet.connected}
+          >
+            + Add Note
+          </button>
+        </div>
       </div>
 
-      {/* Add/Edit Note Modal */}
-      {showAddForm && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: "#ffffff",
-              borderRadius: "12px",
-              padding: "32px",
-              width: "500px",
-              maxWidth: "90vw",
-              boxShadow: "0 10px 25px 0 rgba(0, 0, 0, 0.15)",
-            }}
-          >
-            <h2
-              style={{
-                fontSize: "24px",
-                fontWeight: "600",
-                marginBottom: "20px",
-                color: "#1e293b",
-              }}
-            >
-              {editingNote ? "Edit Note" : "Add New Note"}
-            </h2>
-            <form onSubmit={handleSubmit}>
-              <input
-                type="text"
-                placeholder="Note title..."
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "12px 16px",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "8px",
-                  fontSize: "16px",
-                  marginBottom: "16px",
-                  outline: "none",
-                  transition: "border-color 0.2s ease",
-                  boxSizing: "border-box",
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = "#6366f1";
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = "#e2e8f0";
-                }}
-              />
-              <textarea
-                placeholder="Write your note content here..."
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                rows={6}
-                style={{
-                  width: "100%",
-                  padding: "12px 16px",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "8px",
-                  fontSize: "14px",
-                  marginBottom: "20px",
-                  outline: "none",
-                  resize: "vertical",
-                  fontFamily: "inherit",
-                  transition: "border-color 0.2s ease",
-                  boxSizing: "border-box",
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = "#6366f1";
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = "#e2e8f0";
-                }}
-              />
-              <div
-                style={{
-                  display: "flex",
-                  gap: "12px",
-                  justifyContent: "flex-end",
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  style={{
-                    padding: "10px 20px",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "8px",
-                    backgroundColor: "transparent",
-                    color: "#64748b",
-                    cursor: "pointer",
-                    fontSize: "14px",
-                    transition: "all 0.2s ease",
-                  }}
-                  onMouseOver={(e) => {
-                    e.target.style.backgroundColor = "#f1f5f9";
-                  }}
-                  onMouseOut={(e) => {
-                    e.target.style.backgroundColor = "transparent";
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  style={{
-                    padding: "10px 20px",
-                    background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
-                    color: "#ffffff",
-                    border: "none",
-                    borderRadius: "8px",
-                    cursor: "pointer",
-                    fontSize: "14px",
-                    fontWeight: "500",
-                    transition: "all 0.2s ease",
-                  }}
-                  onMouseOver={(e) => {
-                    e.target.style.transform = "translateY(-1px)";
-                  }}
-                  onMouseOut={(e) => {
-                    e.target.style.transform = "translateY(0)";
-                  }}
-                >
-                  {editingNote ? "Update Note" : "Save Note"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
-      {notification && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: "20px",
-            right: "20px",
-            backgroundColor: "#ffffff",
-            color: "#1e293b",
-            padding: "16px 20px",
-            borderRadius: "12px",
-            boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
-            fontSize: "14px",
-            zIndex: 1001,
-            animation: "slideInRight 0.3s ease-out",
-            border: "1px solid #e2e8f0",
-            minWidth: "280px",
-            maxWidth: "320px",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-start",
-              gap: "12px",
-            }}
-          >
-            <div
-              style={{
-                width: "20px",
-                height: "20px",
-                borderRadius: "50%",
-                backgroundColor: "#10b981",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-                marginTop: "1px",
-              }}
-            >
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#ffffff"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polyline points="20,6 9,17 4,12" />
-              </svg>
-            </div>
-            <div style={{ flex: 1 }}>
-              <div
-                style={{
-                  fontWeight: "600",
-                  fontSize: "14px",
-                  color: "#1e293b",
-                  marginBottom: "2px",
-                  lineHeight: "1.3",
-                }}
-              >
-                {notification.title}
-              </div>
-              <div
-                style={{
-                  fontSize: "13px",
-                  color: "#64748b",
-                  lineHeight: "1.4",
-                }}
-              >
-                {notification.subtitle}
-              </div>
-            </div>
-          </div>
-          <style>
-            {`
-              @keyframes slideInRight {
-                from {
-                  transform: translateX(100%);
-                  opacity: 0;
-                }
-                to {
-                  transform: translateX(0);
-                  opacity: 1;
-                }
-              }
-            `}
-          </style>
-        </div>
-      )}
-
-      {/* Notes Grid - Changed to exactly 4 columns */}
-      <div
-        style={{
-          padding: "32px",
-          maxWidth: "1400px",
-          margin: "0 auto",
-        }}
-      >
+      {/* Notes Grid */}
+      <div className="notes-grid">
         {notes.length === 0 ? (
-          <div
-            style={{
-              textAlign: "center",
-              padding: "80px 20px",
-              color: "#64748b",
-            }}
-          >
-            <div
-              style={{
-                fontSize: "48px",
-                marginBottom: "16px",
-              }}
-            >
-              📝
-            </div>
-            <h3
-              style={{
-                fontSize: "20px",
-                fontWeight: "500",
-                marginBottom: "8px",
-                color: "#1e293b",
-              }}
-            >
-              No notes yet
-            </h3>
-            <p
-              style={{
-                fontSize: "16px",
-                margin: 0,
-              }}
-            >
-              Create your first note by clicking the "+ Add Note" button above.
+          <div className="no-notes-container">
+            <p className="no-notes">
+              {wallet.connected
+                ? "No notes yet. Create your first note!"
+                : "Connect your wallet to view and create notes"}
             </p>
           </div>
         ) : (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(4, 1fr)", // Keep 4 columns as requested
-              gap: "24px", // Restored original gap size
-            }}
-          >
-            <style>
-              {`
-                @media (max-width: 1200px) {
-                  .notes-grid {\n                    grid-template-columns: repeat(3, 1fr) !important;\n                  }\n                }\n                @media (max-width: 900px) {\n                  .notes-grid {\n                    grid-template-columns: repeat(2, 1fr) !important;\n                  }\n                }\n                @media (max-width: 600px) {\n                  .notes-grid {\n                    grid-template-columns: 1fr !important;\n                  }\n                }
-              `}
-            </style>
-            {notes.map((note) => (
-              <div
-                key={note.id}
-                className="notes-grid"
-                style={{
-                  backgroundColor: "#ffffff",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "12px",
-                  padding: "24px", // Restored original padding
-                  boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.05)",
-                  transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-                  height: "fit-content",
-                  position: "relative",
-                  minHeight: "200px", // Restored original minimum height
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.boxShadow = "0 10px 25px 0 rgba(0, 0, 0, 0.1)";
-                  e.currentTarget.style.transform = "translateY(-2px)";
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.boxShadow = "0 1px 3px 0 rgba(0, 0, 0, 0.05)";
-                  e.currentTarget.style.transform = "translateY(0)";
-                }}
-              >
+          notes.map((note) => (
+            <div
+              key={note.id}
+              className="note-card"
+              onClick={() => openViewModal(note)}
+            >
+              <div className="note-card-header">
+                <h3 className="note-title">{note.title}</h3>
                 <div
-                  style={{
-                    position: "absolute",
-                    top: "12px",
-                    right: "12px",
-                    display: "flex",
-                    gap: "4px",
-                  }}
+                  className="note-actions"
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleEdit(note);
-                    }}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      padding: "4px",
-                      borderRadius: "4px",
-                      color: "#64748b",
-                      transition: "all 0.2s ease",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                    onMouseOver={(e) => {
-                      e.target.style.backgroundColor = "#f1f5f9";
-                      e.target.style.color = "#6366f1";
-                    }}
-                    onMouseOut={(e) => {
-                      e.target.style.backgroundColor = "transparent";
-                      e.target.style.color = "#64748b";
-                    }}
-                    title="Edit note"
-                  >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+                  {/* Blockchain Verification Badge */}
+                  {note.blockchain?.success && (
+                    <span
+                      className="blockchain-badge"
+                      title="Verified on Cardano Blockchain"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setTxDetails(note.blockchain);
+                      }}
                     >
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                      <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                    </svg>
+                      🔗 Verified
+                    </span>
+                  )}
+                  <button onClick={() => openEditModal(note)} title="Edit">
+                    <FaPen />
                   </button>
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(note.id);
+                    onClick={() => {
+                      setCurrentNote(note);
+                      setIsDeleteConfirm(true);
                     }}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      padding: "4px",
-                      borderRadius: "4px",
-                      color: "#64748b",
-                      transition: "all 0.2s ease",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                    onMouseOver={(e) => {
-                      e.target.style.backgroundColor = "#fef2f2";
-                      e.target.style.color = "#ef4444";
-                    }}
-                    onMouseOut={(e) => {
-                      e.target.style.backgroundColor = "transparent";
-                      e.target.style.color = "#64748b";
-                    }}
-                    title="Delete note"
+                    title="Delete"
                   >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <polyline points="3,6 5,6 21,6" />
-                      <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2" />
-                      <line x1="10" y1="11" x2="10" y2="17" />
-                      <line x1="14" y1="11" x2="14" y2="17" />
-                    </svg>
+                    <FaTrash />
                   </button>
                 </div>
-
-                <h3
-                  style={{
-                    fontSize: "18px",
-                    fontWeight: "600",
-                    color: "#1e293b",
-                    marginBottom: "12px",
-                    lineHeight: "1.4",
-                    margin: "0 0 12px 0",
-                    paddingRight: "60px",
-                  }}
-                >
-                  {note.title}
-                </h3>
-                <p
-                  style={{
-                    fontSize: "14px",
-                    color: "#64748b",
-                    lineHeight: "1.5",
-                    margin: "0 0 auto 0",
-                    display: "-webkit-box",
-                    WebkitLineClamp: 4,
-                    WebkitBoxOrient: "vertical",
-                    overflow: "hidden",
-                    flex: "1",
-                  }}
-                >
-                  {note.content}
-                </p>
-                <small
-                  style={{
-                    fontSize: "12px",
-                    color: "#94a3b8",
-                    fontWeight: "400",
-                    marginTop: "auto",
-                    display: "block",
-                    paddingTop: "16px",
-                  }}
-                >
-                  Created: {note.createdAt}
-                  {note.updatedAt && (
-                    <>
-                      <br />
-                      Updated: {note.updatedAt}
-                    </>
-                  )}
-                </small>
               </div>
-            ))}
-          </div>
+
+              <p className="note-content">
+                {note.content.length > 100
+                  ? note.content.substring(0, 100) + "..."
+                  : note.content}
+              </p>
+              <div className="note-dates">
+                <span>Created: {formatDate(note.created_at)}</span>
+                <br />
+                <span>Updated: {formatDate(note.updated_at)}</span>
+              </div>
+              {note.blockchain && (
+                <div className="note-wallet-info">
+                  <small>From: {note.blockchain.walletAddress?.slice(0, 10)}...{note.blockchain.walletAddress?.slice(-8)}</small>
+                </div>
+              )}
+            </div>
+          ))
         )}
       </div>
+
+      {/* Rest of your modals remain the same */}
+      {/* Add/Edit Modal */}
+      {isModalOpen && (
+        <div className="modal-overlay" onClick={closeModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>{isEditMode ? "Edit Note" : "Add Note"}</h2>
+            <div className="wallet-indicator">
+              <small>Saving to blockchain from: {wallet.address.slice(0, 10)}...{wallet.address.slice(-8)}</small>
+            </div>
+            <input
+              type="text"
+              className="note-input"
+              placeholder="Title"
+              value={currentNote.title}
+              onChange={(e) =>
+                setCurrentNote({ ...currentNote, title: e.target.value })
+              }
+            />
+            <textarea
+              className="note-textarea"
+              placeholder="Content"
+              value={currentNote.content}
+              onChange={(e) =>
+                setCurrentNote({ ...currentNote, content: e.target.value })
+              }
+            />
+            <div className="modal-buttons">
+              <button className="save-btn" onClick={handleSave}>
+                Save to Blockchain
+              </button>
+              <button className="cancel-btn" onClick={closeModal}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Modal */}
+      {isViewMode && (
+        <div className="modal-overlay" onClick={closeModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>{currentNote.title}</h2>
+            <p>{currentNote.content}</p>
+            <div className="note-dates">
+              <span>Created: {formatDate(currentNote.created_at)}</span>
+              <br />
+              <span>Updated: {formatDate(currentNote.updated_at)}</span>
+            </div>
+            <div className="modal-buttons">
+              <button
+                className="save-btn"
+                onClick={() => openEditModal(currentNote)}
+              >
+                Edit
+              </button>
+              <button className="cancel-btn" onClick={closeModal}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation */}
+      {isDeleteConfirm && (
+        <div className="modal-overlay" onClick={closeModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>Delete Note</h2>
+            <p>Are you sure you want to delete this note?</p>
+            <div className="modal-buttons">
+              <button className="confirm-btn" onClick={handleDelete}>
+                Yes, Delete
+              </button>
+              <button className="cancel-btn" onClick={closeModal}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Blockchain Transaction Notification */}
+      {blockchainTx && (
+        <div className={`blockchain-notification ${blockchainTx.success ? 'success' : 'error'}`}>
+          <div className="blockchain-header">
+            <strong>🔗 Blockchain Transaction {blockchainTx.success ? 'Successful' : 'Failed'}</strong>
+            <button
+              className="view-details-btn"
+              onClick={() => setTxDetails(blockchainTx)}
+            >
+              View Details
+            </button>
+          </div>
+          <div className="blockchain-details">
+            <div>Action: {blockchainTx.action}</div>
+            <div>TX Hash: {blockchainTx.txHash}</div>
+            <div>Note: "{blockchainTx.noteTitle}"</div>
+            {blockchainTx.block && <div>Block: #{blockchainTx.block}</div>}
+            {blockchainTx.fees && <div>Fees: {blockchainTx.fees}</div>}
+            {blockchainTx.walletAddress && (
+              <div>From: {blockchainTx.walletAddress.slice(0, 10)}...{blockchainTx.walletAddress.slice(-8)}</div>
+            )}
+            {blockchainTx.error && <div>Error: {blockchainTx.error}</div>}
+          </div>
+          <button className="close-tx-btn" onClick={() => setBlockchainTx(null)}>×</button>
+        </div>
+      )}
+
+
+      {/* Transaction Details Modal */}
+      {txDetails && (
+        <div className="modal-overlay" onClick={() => setTxDetails(null)}>
+          <div className="modal-content tx-details-modal" onClick={(e) => e.stopPropagation()}>
+            <h2>🔗 Blockchain Transaction Details</h2>
+            <div className="tx-details">
+              <div className="tx-field">
+                <strong>Action:</strong>
+                <span className={`tx-action ${txDetails.action.toLowerCase()}`}>
+                  {txDetails.action}
+                </span>
+              </div>
+              <div className="tx-field">
+                <strong>Transaction Hash:</strong>
+                <code>{txDetails.txHash}</code>
+              </div>
+              <div className="tx-field">
+                <strong>Block:</strong>
+                <span className="block-number">#{txDetails.block}</span>
+              </div>
+              <div className="tx-field">
+                <strong>Fees:</strong>
+                <span className="fees">{txDetails.fees}</span>
+              </div>
+              <div className="tx-field">
+                <strong>Timestamp:</strong>
+                <span>{new Date(txDetails.timestamp).toLocaleString()}</span>
+              </div>
+              <div className="tx-field">
+                <strong>Wallet:</strong>
+                <span className="wallet-address-display">
+                  {txDetails.walletAddress || "Unknown"}
+                </span>
+              </div>
+              <div className="tx-field">
+                <strong>Status:</strong>
+                <span className={`status ${txDetails.success ? 'confirmed' : 'failed'}`}>
+                  {txDetails.success ? 'Confirmed' : 'Failed'}
+                </span>
+              </div>
+              {txDetails.metadata && (
+                <div className="metadata-section">
+                  <strong>On-Chain Metadata:</strong>
+                  <pre className="metadata-json">
+                    {JSON.stringify(txDetails.metadata, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+            <div className="modal-buttons">
+              <button className="cancel-btn" onClick={() => setTxDetails(null)}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
-};
+
+}
 
 export default App;
