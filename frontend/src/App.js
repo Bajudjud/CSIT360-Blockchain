@@ -1,15 +1,13 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { FaPen, FaTrash, FaWallet } from "react-icons/fa";
+// Ensure you installed these: npm install react-icons
+import { FaPen, FaTrash, FaWallet, FaCheckCircle } from "react-icons/fa";
 import "./index.css";
 
-const API_URL = "http://localhost:5000/api/notes";
+const API_URL = "http://localhost:5000/api";
 
 function App() {
-  const [notes, setNotes] = useState(() => {
-    const savedNotes = localStorage.getItem('notesData');
-    return savedNotes ? JSON.parse(savedNotes) : [];
-  });
+  const [notes, setNotes] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isViewMode, setIsViewMode] = useState(false);
@@ -17,86 +15,98 @@ function App() {
   const [currentNote, setCurrentNote] = useState({ title: "", content: "" });
   const [blockchainTx, setBlockchainTx] = useState(null);
   const [txDetails, setTxDetails] = useState(null);
+  const [error, setError] = useState('');
 
-  // Wallet State
-  const [wallet, setWallet] = useState(() => {
-    const savedWallet = localStorage.getItem('walletState');
-    return savedWallet ? JSON.parse(savedWallet) : {
-      connected: false,
-      address: "",
-      name: "",
-      balance: "0 ADA"
-    };
+  const [wallet, setWallet] = useState({
+    connected: false,
+    address: "",
+    name: "",
+    balance: "",
+    network: "",
+    api: null
   });
   const [isConnecting, setIsConnecting] = useState(false);
 
-  // Check for Cardano wallets on component mount
-  useEffect(() => {
-    localStorage.setItem('walletState', JSON.stringify(wallet));
-  }, [wallet]);
-
-  // Save notes to localStorage whenever they change
-  useEffect(() => {
-    if (notes.length > 0) {
-      localStorage.setItem('notesData', JSON.stringify(notes));
-    }
-  }, [notes]);
-
-  // Fetch notes from API on mount
+  // 1. Initial Load & Persistence Check
   useEffect(() => {
     fetchNotes();
+    
+    // Check if we were connected before
+    const wasConnected = localStorage.getItem('walletConnected');
+    if (wasConnected === 'true') {
+      // Give Lace a moment to inject into the window
+      setTimeout(() => {
+        connectWallet(true); // true = silent mode
+      }, 500);
+    }
   }, []);
-
-  const checkForWallets = () => {
-    // Check if any Cardano wallet is available
-    const hasWallet = window.cardano && (
-      window.cardano.lace ||
-      window.cardano.eternl ||
-      window.cardano.nami ||
-      window.cardano.flint
-    );
-
-
-    console.log("Cardano wallets detected:", {
-      lace: !!window.cardano?.lace,
-      eternl: !!window.cardano?.eternl,
-      nami: !!window.cardano?.nami,
-      flint: !!window.cardano?.flint
-    });
-  };
-
 
   const fetchNotes = async () => {
     try {
-      const res = await axios.get(API_URL);
-      setNotes(res.data);
+      const response = await axios.get(`${API_URL}/notes`);
+      setNotes(response.data);
     } catch (err) {
       console.error("Error fetching notes:", err);
     }
   };
 
-  // SIMPLIFIED WALLET CONNECTION
-  const connectWallet = async () => {
-    setIsConnecting(true);
+  const decodeBalance = (balance) => {
+    if (!balance) return "0.00";
+    // Usually balances come in Lovelace (1 ADA = 1,000,000 Lovelace)
+    // Lace might return hex or string
+    try {
+       // Simple heuristic: if it looks like hex, parse it
+       let val = typeof balance === 'string' && !/^\d+$/.test(balance) 
+         ? parseInt(balance, 16) 
+         : parseInt(balance);
+         
+       return (val / 1000000).toFixed(2);
+    } catch (e) {
+       return "0.00";
+    }
+  };
 
-    // Simulate connection delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+  const connectWallet = async (silent = false) => {
+    if (!silent) setIsConnecting(true);
+    setError('');
 
     try {
-      // YOUR REAL LACE WALLET ADDRESS
-      const realLaceAddress = "addr_test1qqar6m6kk3xkjhwnf5zanwrf7glmjrz2edsp3ucasjz25zua96xxg37tr4zypfygdj9yhwpq0gj6zzk0p082w66657pqrm2pv3";
+      if (!window.cardano || !window.cardano.lace) {
+        if (!silent) throw new Error('Lace wallet not found.');
+        return;
+      }
+
+      const walletAPI = await window.cardano.lace.enable();
+      const networkId = await walletAPI.getNetworkId();
+      const network = networkId === 0 ? "Preprod Testnet" : "Mainnet";
+      
+      const balanceVal = await walletAPI.getBalance();
+      const adaBalance = decodeBalance(balanceVal);
+      
+      let addresses = await walletAPI.getUsedAddresses();
+      if (addresses.length === 0) addresses = await walletAPI.getUnusedAddresses();
+      
+      if (addresses.length === 0) {
+        if(!silent) throw new Error('No addresses found');
+        return;
+      }
 
       setWallet({
         connected: true,
-        address: realLaceAddress, // YOUR REAL ADDRESS
-        name: "Lace Wallet",
-        balance: "100.50 ADA"
+        address: addresses[0],
+        name: 'Lace Wallet',
+        balance: `${adaBalance} ADA`,
+        network: network,
+        api: walletAPI
       });
 
-      console.log("✅ Wallet connected (simulation with real address):", realLaceAddress);
+      // Save connection state
+      localStorage.setItem('walletConnected', 'true');
 
-    } catch (error) {
-      console.error("Wallet connection failed:", error);
+    } catch (err) {
+      console.error("Connection failed", err);
+      if (!silent) setError(err.message);
+      localStorage.removeItem('walletConnected');
     } finally {
       setIsConnecting(false);
     }
@@ -107,437 +117,230 @@ function App() {
       connected: false,
       address: "",
       name: "",
-      balance: "0 ADA"
+      balance: "",
+      network: "",
+      api: null
     });
-    localStorage.removeItem('walletState');
-    console.log("Wallet disconnected");
+    localStorage.removeItem('walletConnected');
   };
 
-  const openAddModal = () => {
-    if (!wallet.connected) {
-      alert("Please connect your wallet first to save notes to the blockchain!");
-      return;
+  // 2. FIXED TRANSACTION LOGIC (Build -> Sign -> Assemble -> Submit)
+  const createBlockchainTransaction = async (noteData, action) => {
+    try {
+      console.log(`🔄 Creating REAL transaction for ${action}...`);
+      
+      if (!wallet.api) throw new Error("Wallet not connected.");
+
+      // A. Get UTXOs
+      const changeAddressHex = await wallet.api.getChangeAddress();
+      const utxosHex = await wallet.api.getUtxos();
+      
+      if (!utxosHex || utxosHex.length === 0) throw new Error("No UTXOs found (Wallet empty?)");
+
+      // B. BUILD (Backend)
+      console.log("🛠 Building TX on backend...");
+      const buildRes = await axios.post(`${API_URL}/build-transaction`, {
+        changeAddress: changeAddressHex,
+        utxos: utxosHex,
+        meta: {
+          title: noteData.title,
+          content: noteData.content,
+          action: action
+        }
+      });
+      const { cborHex } = buildRes.data;
+
+      // C. SIGN (Frontend - Lace)
+      console.log("🔐 Requesting signature...");
+      const witnessHex = await wallet.api.signTx(cborHex, true);
+
+      // D. ASSEMBLE (Backend)
+      // This step was missing before! We combine body + signature
+      console.log("🧩 Assembling transaction...");
+      const assembleRes = await axios.post(`${API_URL}/assemble-transaction`, {
+        txCbor: cborHex,
+        witnessCbor: witnessHex
+      });
+      const { signedTxHex } = assembleRes.data;
+
+      // E. SUBMIT (Frontend - Lace)
+      console.log("🚀 Submitting REAL transaction...");
+      const txHash = await wallet.api.submitTx(signedTxHex);
+
+      console.log("✅ TX SUCCESS:", txHash);
+      return { success: true, txHash, action, real: true, timestamp: new Date().toISOString() };
+
+    } catch (error) {
+      console.error("❌ Transaction failed:", error);
+      // Helper to read detailed API errors
+      const msg = error.info || error.message || JSON.stringify(error);
+      return { success: false, error: msg };
     }
+  };
+
+  // --- CRUD OPERATIONS ---
+
+  const handleSave = async () => {
+    if (!currentNote.title.trim()) return alert("Title required");
+
+    try {
+      // 1. Do Blockchain Tx
+      const action = isEditMode ? 'UPDATE_NOTE' : 'CREATE_NOTE';
+      const txResult = await createBlockchainTransaction(currentNote, action);
+
+      if (!txResult.success) throw new Error(txResult.error);
+
+      // 2. If successful, save to DB
+      if (isEditMode) {
+        const res = await axios.put(`${API_URL}/notes/${currentNote.id}`, { ...currentNote, blockchain: txResult });
+        setNotes(notes.map(n => n.id === currentNote.id ? res.data : n));
+      } else {
+        const res = await axios.post(`${API_URL}/notes`, { ...currentNote, blockchain: txResult });
+        setNotes([res.data, ...notes]);
+      }
+
+      setBlockchainTx(txResult);
+      closeModal();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      // 1. Do Blockchain Tx
+      const txResult = await createBlockchainTransaction(currentNote, 'DELETE_NOTE');
+      
+      if (!txResult.success) throw new Error(txResult.error);
+
+      // 2. If successful, delete from DB
+      await axios.delete(`${API_URL}/notes/${currentNote.id}`);
+      setNotes(notes.filter(n => n.id !== currentNote.id));
+      
+      setBlockchainTx(txResult);
+      closeModal();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  // --- UI HELPERS ---
+
+  const openAddModal = () => {
+    if (!wallet.connected) return alert("Please connect wallet first");
     setCurrentNote({ title: "", content: "" });
     setIsEditMode(false);
     setIsModalOpen(true);
   };
 
   const openEditModal = (note) => {
+    if (!wallet.connected) return alert("Please connect wallet first");
     setCurrentNote(note);
     setIsEditMode(true);
     setIsModalOpen(true);
-    setIsViewMode(false);
-  };
-
-  const openViewModal = (note) => {
-    setCurrentNote(note);
-    setIsViewMode(true);
-  };
-  const updateWalletBalance = (fees) => {
-    if (wallet.connected) {
-      try {
-        const feeAmount = parseFloat(fees.split(' ')[0]);
-        const currentBalance = parseFloat(wallet.balance.split(' ')[0]);
-        const newBalance = Math.max(0, (currentBalance - feeAmount).toFixed(2));
-
-        const updatedWallet = {
-          ...wallet,
-          balance: `${newBalance} ADA`
-        };
-
-        setWallet(updatedWallet);
-        localStorage.setItem('walletState', JSON.stringify(updatedWallet));
-
-        console.log(`💰 Balance updated: -${feeAmount} ADA = ${newBalance} ADA remaining`);
-      } catch (error) {
-        console.error("Error updating balance:", error);
-      }
-    }
-  };
-
-  const handleSave = async () => {
-    if (!currentNote.title.trim() || !currentNote.content.trim()) return;
-
-    try {
-      let result;
-      const noteData = {
-        ...currentNote,
-        walletAddress: wallet.address
-      };
-
-      if (isEditMode) {
-        const res = await axios.put(`${API_URL}/${currentNote.id}`, noteData);
-        result = res.data;
-        setNotes(notes.map((n) => (n.id === currentNote.id ? result : n)));
-      } else {
-        const res = await axios.post(API_URL, noteData);
-        result = res.data;
-        setNotes([result, ...notes]);
-      }
-
-      // Show blockchain transaction result
-      if (result.blockchain) {
-        setBlockchainTx(result.blockchain);
-        // UPDATE BALANCE WITH FEES
-        updateWalletBalance(result.blockchain.fees);
-        setTimeout(() => setBlockchainTx(null), 5000);
-      }
-
-      closeModal();
-    } catch (err) {
-      console.error("Error saving note:", err);
-      alert("Error saving note. Please try again.");
-    }
-  };
-
-  // Do the same for handleDelete
-  const handleDelete = async () => {
-    try {
-      const res = await axios.delete(`${API_URL}/${currentNote.id}`);
-
-      // Show blockchain transaction result
-      if (res.data.blockchain) {
-        setBlockchainTx(res.data.blockchain);
-        // UPDATE BALANCE WITH FEES
-        updateWalletBalance(res.data.blockchain.fees);
-        setTimeout(() => setBlockchainTx(null), 5000);
-      }
-
-      setNotes(notes.filter((n) => n.id !== currentNote.id));
-      closeModal();
-    } catch (err) {
-      console.error("Error deleting note:", err);
-    }
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
     setIsViewMode(false);
     setIsDeleteConfirm(false);
+    setCurrentNote({ title: "", content: "" });
+    setError('');
   };
 
-  const formatDate = (dateStr) => {
-    if (!dateStr) return "";
-    const options = {
-      month: "2-digit",
-      day: "2-digit",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-      timeZone: "Asia/Manila",
-    };
-    return new Date(dateStr)
-      .toLocaleString("en-US", options)
-      .replace(",", " at");
-  };
-
-  // Check if any Cardano wallets are available
-  const hasWallets = window.cardano && (
-    window.cardano.lace ||
-    window.cardano.eternl ||
-    window.cardano.nami ||
-    window.cardano.flint
-  );
-
+  const formatAddress = (addr) => addr ? `${addr.substring(0,8)}...${addr.substring(addr.length-6)}` : '';
 
   return (
     <div className="app-wrapper">
-      {/* Header */}
       <div className="header">
         <h1>Note Buddy</h1>
         <div className="header-actions">
-
-          {/* WALLET CONNECTION */}
           {!wallet.connected ? (
-            <div className="wallet-connection">
-              <button
-                className={`connect-wallet-btn ${isConnecting ? 'connecting' : ''}`}
-                onClick={connectWallet}
-                disabled={isConnecting}
-              >
-                {isConnecting ? (
-                  <>
-                    <div className="spinner"></div>
-                    Connecting...
-                  </>
-                ) : (
-                  <>
-                    <FaWallet /> Connect Lace Wallet
-                  </>
-                )}
-              </button>
-            </div>
+            <button className="connect-wallet-btn" onClick={() => connectWallet(false)} disabled={isConnecting}>
+              {isConnecting ? "Connecting..." : <><FaWallet /> Connect Lace</>}
+            </button>
           ) : (
             <div className="wallet-info real-wallet">
-              <div className="wallet-header">
-                <span className="wallet-name">🟣 {wallet.name}</span>
-                <button className="disconnect-btn" onClick={disconnectWallet}>
-                  Disconnect
-                </button>
-              </div>
-              <div className="wallet-details">
-                <span className="wallet-address">
-                  {wallet.address.slice(0, 10)}...{wallet.address.slice(-8)}
-                </span>
-                <span className="wallet-balance">{wallet.balance}</span>
-              </div>
+               <span className="wallet-balance">{wallet.balance}</span>
+               <span className="wallet-address">{formatAddress(wallet.address)}</span>
+               <button className="disconnect-btn" onClick={disconnectWallet}>Disconnect</button>
             </div>
           )}
-
-          <button
-            className={`add-note-btn ${!wallet.connected ? 'disabled' : ''}`}
-            onClick={openAddModal}
-            disabled={!wallet.connected}
-          >
-            + Add Note
-          </button>
+          <button className="add-note-btn" onClick={openAddModal}>+ Add Note</button>
         </div>
       </div>
 
+      {error && <div className="blockchain-notification error" style={{position:'static', marginBottom: 20}}>
+         <strong>Error:</strong> {error}
+      </div>}
 
-      {/* Notes Grid */}
       <div className="notes-grid">
-        {notes.length === 0 ? (
-          <div className="no-notes-container">
-            <p className="no-notes">
-              {wallet.connected
-                ? "No notes yet. Create your first note!"
-                : "Connect your wallet to view and create notes"}
-            </p>
-          </div>
-        ) : (
-          notes.map((note) => (
-            <div
-              key={note.id}
-              className="note-card"
-              onClick={() => openViewModal(note)}
-            >
-              <div className="note-card-header">
-                <h3 className="note-title">{note.title}</h3>
-                <div
-                  className="note-actions"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {/* Blockchain Verification Badge */}
-                  {note.blockchain?.success && (
-                    <span
-                      className="blockchain-badge"
-                      title="Verified on Cardano Blockchain"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setTxDetails(note.blockchain);
-                      }}
-                    >
-                      🔗 Verified
-                    </span>
-                  )}
-                  <button onClick={() => openEditModal(note)} title="Edit">
-                    <FaPen />
-                  </button>
-                  <button
-                    onClick={() => {
-                      setCurrentNote(note);
-                      setIsDeleteConfirm(true);
-                    }}
-                    title="Delete"
-                  >
-                    <FaTrash />
-                  </button>
-                </div>
+        {notes.map((note) => (
+          <div key={note.id} className="note-card" onClick={() => { setCurrentNote(note); setIsViewMode(true); }}>
+            <div className="note-card-header">
+              <h3 className="note-title">{note.title}</h3>
+              <div className="note-actions" onClick={e => e.stopPropagation()}>
+                 {note.blockchain?.success && <FaCheckCircle color="#10b981" title="Verified on Chain" />}
+                 <button onClick={() => openEditModal(note)}><FaPen /></button>
+                 <button onClick={() => { setCurrentNote(note); setIsDeleteConfirm(true); }}><FaTrash /></button>
               </div>
-
-              <p className="note-content">
-                {note.content.length > 100
-                  ? note.content.substring(0, 100) + "..."
-                  : note.content}
-              </p>
-              <div className="note-dates">
-                <span>Created: {formatDate(note.created_at)}</span>
-                <br />
-                <span>Updated: {formatDate(note.updated_at)}</span>
-              </div>
-              {note.blockchain && (
-                <div className="note-wallet-info">
-                  <small>From: {note.blockchain.walletAddress?.slice(0, 10)}...{note.blockchain.walletAddress?.slice(-8)}</small>
-                </div>
-              )}
             </div>
-          ))
-        )}
+            <p className="note-content">{note.content.substring(0, 100)}...</p>
+          </div>
+        ))}
       </div>
 
-      {/* Rest of your modals remain the same */}
-      {/* Add/Edit Modal */}
-      {isModalOpen && (
+      {/* MODALS */}
+      {(isModalOpen || isViewMode || isDeleteConfirm) && (
         <div className="modal-overlay" onClick={closeModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2>{isEditMode ? "Edit Note" : "Add Note"}</h2>
-            <div className="wallet-indicator">
-              <small>Saving to blockchain from: {wallet.address.slice(0, 10)}...{wallet.address.slice(-8)}</small>
-            </div>
-            <input
-              type="text"
-              className="note-input"
-              placeholder="Title"
-              value={currentNote.title}
-              onChange={(e) =>
-                setCurrentNote({ ...currentNote, title: e.target.value })
-              }
-            />
-            <textarea
-              className="note-textarea"
-              placeholder="Content"
-              value={currentNote.content}
-              onChange={(e) =>
-                setCurrentNote({ ...currentNote, content: e.target.value })
-              }
-            />
-            <div className="modal-buttons">
-              <button className="save-btn" onClick={handleSave}>
-                Save to Blockchain
-              </button>
-              <button className="cancel-btn" onClick={closeModal}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* View Modal */}
-      {isViewMode && (
-        <div className="modal-overlay" onClick={closeModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2>{currentNote.title}</h2>
-            <p>{currentNote.content}</p>
-            <div className="note-dates">
-              <span>Created: {formatDate(currentNote.created_at)}</span>
-              <br />
-              <span>Updated: {formatDate(currentNote.updated_at)}</span>
-            </div>
-            <div className="modal-buttons">
-              <button
-                className="save-btn"
-                onClick={() => openEditModal(currentNote)}
-              >
-                Edit
-              </button>
-              <button className="cancel-btn" onClick={closeModal}>
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation */}
-      {isDeleteConfirm && (
-        <div className="modal-overlay" onClick={closeModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2>Delete Note</h2>
-            <p>Are you sure you want to delete this note?</p>
-            <div className="modal-buttons">
-              <button className="confirm-btn" onClick={handleDelete}>
-                Yes, Delete
-              </button>
-              <button className="cancel-btn" onClick={closeModal}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Blockchain Transaction Notification */}
-      {blockchainTx && (
-        <div className={`blockchain-notification ${blockchainTx.success ? 'success' : 'error'}`}>
-          <div className="blockchain-header">
-            <strong>🔗 Blockchain Transaction {blockchainTx.success ? 'Successful' : 'Failed'}</strong>
-            <button
-              className="view-details-btn"
-              onClick={() => setTxDetails(blockchainTx)}
-            >
-              View Details
-            </button>
-          </div>
-          <div className="blockchain-details">
-            <div>Action: {blockchainTx.action}</div>
-            <div>TX Hash: {blockchainTx.txHash}</div>
-            <div>Note: "{blockchainTx.noteTitle}"</div>
-            {blockchainTx.block && <div>Block: #{blockchainTx.block}</div>}
-            {blockchainTx.fees && <div>Fees: {blockchainTx.fees}</div>}
-            {blockchainTx.walletAddress && (
-              <div>From: {blockchainTx.walletAddress.slice(0, 10)}...{blockchainTx.walletAddress.slice(-8)}</div>
-            )}
-            {blockchainTx.error && <div>Error: {blockchainTx.error}</div>}
-          </div>
-          <button className="close-tx-btn" onClick={() => setBlockchainTx(null)}>×</button>
-        </div>
-      )}
-
-
-      {/* Transaction Details Modal */}
-      {txDetails && (
-        <div className="modal-overlay" onClick={() => setTxDetails(null)}>
-          <div className="modal-content tx-details-modal" onClick={(e) => e.stopPropagation()}>
-            <h2>🔗 Blockchain Transaction Details</h2>
-            <div className="tx-details">
-              <div className="tx-field">
-                <strong>Action:</strong>
-                <span className={`tx-action ${txDetails.action.toLowerCase()}`}>
-                  {txDetails.action}
-                </span>
-              </div>
-              <div className="tx-field">
-                <strong>Transaction Hash:</strong>
-                <code>{txDetails.txHash}</code>
-              </div>
-              <div className="tx-field">
-                <strong>Block:</strong>
-                <span className="block-number">#{txDetails.block}</span>
-              </div>
-              <div className="tx-field">
-                <strong>Fees:</strong>
-                <span className="fees">{txDetails.fees}</span>
-              </div>
-              <div className="tx-field">
-                <strong>Timestamp:</strong>
-                <span>{new Date(txDetails.timestamp).toLocaleString()}</span>
-              </div>
-              <div className="tx-field">
-                <strong>Wallet:</strong>
-                <span className="wallet-address-display">
-                  {txDetails.walletAddress || "Unknown"}
-                </span>
-              </div>
-              <div className="tx-field">
-                <strong>Status:</strong>
-                <span className={`status ${txDetails.success ? 'confirmed' : 'failed'}`}>
-                  {txDetails.success ? 'Confirmed' : 'Failed'}
-                </span>
-              </div>
-              {txDetails.metadata && (
-                <div className="metadata-section">
-                  <strong>On-Chain Metadata:</strong>
-                  <pre className="metadata-json">
-                    {JSON.stringify(txDetails.metadata, null, 2)}
-                  </pre>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            
+            {/* DELETE CONFIRM */}
+            {isDeleteConfirm ? (
+              <>
+                <h2>Delete Note?</h2>
+                <p>This will record a DELETE transaction on Cardano.</p>
+                <div className="modal-buttons">
+                  <button className="confirm-btn" style={{background:'#ef4444'}} onClick={handleDelete}>Yes, Delete</button>
+                  <button className="cancel-btn" onClick={closeModal}>Cancel</button>
                 </div>
-              )}
-            </div>
-            <div className="modal-buttons">
-              <button className="cancel-btn" onClick={() => setTxDetails(null)}>
-                Close
-              </button>
-            </div>
+              </>
+            ) : isViewMode ? (
+              /* VIEW MODE */
+              <>
+                <h2>{currentNote.title}</h2>
+                <p style={{whiteSpace: 'pre-wrap'}}>{currentNote.content}</p>
+                {currentNote.blockchain && <div style={{marginTop: 20, fontSize: 12, color: '#666'}}>
+                  TX: {currentNote.blockchain.txHash}
+                </div>}
+                <button className="cancel-btn" onClick={closeModal}>Close</button>
+              </>
+            ) : (
+              /* ADD/EDIT MODE */
+              <>
+                 <h2>{isEditMode ? "Edit Note" : "New Note"}</h2>
+                 <input className="note-input" value={currentNote.title} onChange={e => setCurrentNote({...currentNote, title: e.target.value})} placeholder="Title" />
+                 <textarea className="note-textarea" value={currentNote.content} onChange={e => setCurrentNote({...currentNote, content: e.target.value})} placeholder="Content" />
+                 <div className="modal-buttons">
+                   <button className="save-btn" onClick={handleSave}>Sign & Save</button>
+                   <button className="cancel-btn" onClick={closeModal}>Cancel</button>
+                 </div>
+              </>
+            )}
           </div>
+        </div>
+      )}
+
+      {/* NOTIFICATION */}
+      {blockchainTx && (
+        <div className="blockchain-notification success">
+           <div><strong>✅ Transaction Sent!</strong></div>
+           <small>Hash: {formatAddress(blockchainTx.txHash)}</small>
+           <button className="close-tx-btn" onClick={() => setBlockchainTx(null)}>×</button>
         </div>
       )}
     </div>
   );
-
 }
 
 export default App;

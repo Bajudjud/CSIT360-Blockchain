@@ -504,3 +504,104 @@ body {
   text-align: center;
   color: #856404;
 }
+/* Add these styles to your index.css file */
+
+/* Wallet Connection Error */
+.wallet-error {
+  background: #fee;
+  border: 1px solid #fcc;
+  border-radius: 8px;
+  padding: 10px;
+  margin-top: 10px;
+  color: #c33;
+  font-size: 14px;
+}
+
+.wallet-error small {
+  color: #955;
+  font-size: 12px;
+}
+
+/* Connecting Spinner */
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+  margin-right: 8px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Real wallet info styles */
+.real-wallet {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 15px;
+  min-width: 280px;
+  box-shadow: 0 4px 15px rgba(118, 75, 162, 0.3);
+}
+
+.real-wallet .wallet-name {
+  color: white;
+  font-weight: bold;
+}
+
+.real-wallet .wallet-address {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  font-family: monospace;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  backdrop-filter: blur(10px);
+}
+
+.real-wallet .wallet-balance {
+  color: #4ade80;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.real-wallet .disconnect-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.real-wallet .disconnect-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+/* Wallet Connection States */
+.connect-wallet-btn.wallet-missing {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+.connect-wallet-btn.wallet-missing:hover {
+  background: #6c757d;
+  transform: none;
+}
+
+.wallet-help {
+  margin-top: 8px;
+  text-align: center;
+}
+
+.wallet-help a {
+  color: #fbbf24;
+  margin-left: 4px;
+  text-decoration: underline;
+}
+
+.wallet-help a:hover {
+  color: #f59e0b;
+}
