@@ -1,82 +1,49 @@
-// backend/cardanoService.js - SIMPLIFIED REAL TRANSACTIONS
+import { BlockFrostAPI } from '@blockfrost/blockfrost-js';
+
 class CardanoService {
   constructor() {
-    console.log("✅ REAL Cardano Service - Ready for transactions");
-  }
-
-  async createNoteTransaction(noteData, walletAPI) {
-    try {
-      console.log('🔄 Attempting REAL transaction for note:', noteData.title);
-      
-      // The walletAPI object cannot be passed from frontend to backend
-      // We need to handle transactions differently
-      console.log('❌ Wallet API cannot be used in backend directly');
-      console.log('💡 Solution: Transactions must be handled in frontend');
-      
-      // For now, let's simulate what would happen with real transactions
-      // In a real implementation, you'd:
-      // 1. Build transaction in frontend using walletAPI
-      // 2. Sign in frontend using walletAPI.signTx()
-      // 3. Submit in frontend using walletAPI.submitTx()
-      // 4. Send only the transaction hash to backend
-      
-      throw new Error('Real transactions require frontend implementation. Using simulation for demo.');
-      
-    } catch (error) {
-      console.error('❌ Real transaction failed, falling back to simulation:', error.message);
-      
-      // Fallback to simulation
-      return await this.simulateTransaction('CREATE_NOTE', noteData);
-    }
-  }
-
-  async updateNoteTransaction(noteData, walletAPI) {
-    try {
-      console.log('🔄 Attempting REAL transaction for update:', noteData.title);
-      throw new Error('Real transactions require frontend implementation. Using simulation for demo.');
-    } catch (error) {
-      return await this.simulateTransaction('UPDATE_NOTE', noteData);
-    }
-  }
-
-  async deleteNoteTransaction(noteData, walletAPI) {
-    try {
-      console.log('🔄 Attempting REAL transaction for delete:', noteData.title);
-      throw new Error('Real transactions require frontend implementation. Using simulation for demo.');
-    } catch (error) {
-      return await this.simulateTransaction('DELETE_NOTE', noteData);
-    }
-  }
-
-  // Simulation fallback
-  async simulateTransaction(action, noteData) {
-    console.log(`🔄 Simulating ${action} transaction...`);
+    // ⚠️ REPLACE WITH YOUR REAL PROJECT ID
+    this.API = new BlockFrostAPI({
+      projectId: 'previewooSWJR3mIJrNH5oQgMERTwz5uYGa90fu', 
+    });
     
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    const txHash = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    return {
-      success: true,
-      txHash: txHash,
-      action: action,
-      noteId: noteData.id,
-      noteTitle: noteData.title,
-      walletAddress: noteData.walletAddress || 'simulated',
-      fees: action === 'CREATE_NOTE' ? '1.8 ADA' : 
-            action === 'UPDATE_NOTE' ? '1.2 ADA' : '1.0 ADA',
-      timestamp: new Date().toISOString(),
-      block: Math.floor(8000000 + Math.random() * 1000000),
-      metadata: {
-        "1337": {
-          "action": action,
-          "noteId": noteData.id,
-          "title": noteData.title?.substring(0, 64) || '',
-          "timestamp": new Date().toISOString()
+    console.log("✅ Cardano Service Initialized");
+  }
+
+  startBackgroundWorker(db) {
+    console.log("👷 Background Worker Started");
+
+    setInterval(async () => {
+      try {
+        const pendingNotes = db.getPending();
+        if (pendingNotes.length === 0) return;
+
+        console.log(`🔍 Checking ${pendingNotes.length} pending transactions...`);
+
+        for (const note of pendingNotes) {
+          if (note.blockchain && note.blockchain.txHash) {
+             await this.checkTransaction(note.blockchain.txHash, db);
+          }
         }
+      } catch (error) {
+        console.error("Worker Error:", error.message);
       }
-    };
+    }, 20000); 
+  }
+
+  async checkTransaction(txHash, db) {
+    try {
+      const tx = await this.API.txs(txHash);
+      if (tx && tx.hash) {
+        console.log(`🎉 Transaction Confirmed: ${txHash}`);
+        db.updateStatus(txHash, 'confirmed');
+      }
+    } catch (error) {
+      if (error.statusCode !== 404) {
+        console.error(`Error checking ${txHash}:`, error.message);
+      }
+    }
   }
 }
 
-module.exports = new CardanoService();
+export default new CardanoService();

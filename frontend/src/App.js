@@ -126,57 +126,44 @@ function App() {
 
   // 2. FIXED TRANSACTION LOGIC (Build -> Sign -> Assemble -> Submit)
   const createBlockchainTransaction = async (noteData, action) => {
-    try {
-      console.log(`🔄 Creating REAL transaction for ${action}...`);
-      
-      if (!wallet.api) throw new Error("Wallet not connected.");
+  try {
+    if (!wallet.api) throw new Error("Wallet not connected.");
+    console.log(`🔄 Processing ${action}...`);
 
-      // A. Get UTXOs
-      const changeAddressHex = await wallet.api.getChangeAddress();
-      const utxosHex = await wallet.api.getUtxos();
-      
-      if (!utxosHex || utxosHex.length === 0) throw new Error("No UTXOs found (Wallet empty?)");
+    // 1. Get Wallet Data
+    const changeAddress = await wallet.api.getChangeAddress();
+    const utxos = await wallet.api.getUtxos();
+    if (!utxos || utxos.length === 0) throw new Error("No UTXOs. Please add funds to your wallet.");
 
-      // B. BUILD (Backend)
-      console.log("🛠 Building TX on backend...");
-      const buildRes = await axios.post(`${API_URL}/build-transaction`, {
-        changeAddress: changeAddressHex,
-        utxos: utxosHex,
-        meta: {
-          title: noteData.title,
-          content: noteData.content,
-          action: action
-        }
-      });
-      const { cborHex } = buildRes.data;
+    // 2. Request Backend to Build Transaction
+    const buildRes = await axios.post(`${API_URL}/build-transaction`, {
+      changeAddress,
+      utxos,
+      meta: { title: noteData.title, content: noteData.content, action }
+    });
 
-      // C. SIGN (Frontend - Lace)
-      console.log("🔐 Requesting signature...");
-      const witnessHex = await wallet.api.signTx(cborHex, true);
+    // 3. Sign with Wallet (Lace)
+    const witnessHex = await wallet.api.signTx(buildRes.data.cborHex, true);
 
-      // D. ASSEMBLE (Backend)
-      // This step was missing before! We combine body + signature
-      console.log("🧩 Assembling transaction...");
-      const assembleRes = await axios.post(`${API_URL}/assemble-transaction`, {
-        txCbor: cborHex,
-        witnessCbor: witnessHex
-      });
-      const { signedTxHex } = assembleRes.data;
+    // 4. Request Backend to Assemble
+    const assembleRes = await axios.post(`${API_URL}/assemble-transaction`, {
+      txCbor: buildRes.data.cborHex,
+      witnessCbor: witnessHex
+    });
 
-      // E. SUBMIT (Frontend - Lace)
-      console.log("🚀 Submitting REAL transaction...");
-      const txHash = await wallet.api.submitTx(signedTxHex);
+    // 5. Submit to Blockchain
+    const txHash = await wallet.api.submitTx(assembleRes.data.signedTxHex);
+    console.log("✅ Transaction Submitted:", txHash);
 
-      console.log("✅ TX SUCCESS:", txHash);
-      return { success: true, txHash, action, real: true, timestamp: new Date().toISOString() };
+    return { success: true, txHash, action };
 
-    } catch (error) {
-      console.error("❌ Transaction failed:", error);
-      // Helper to read detailed API errors
-      const msg = error.info || error.message || JSON.stringify(error);
-      return { success: false, error: msg };
-    }
-  };
+  } catch (error) {
+    console.error("TX Failed:", error);
+    // Extract readable error message
+    const msg = error.info || error.message || "Transaction failed";
+    return { success: false, error: msg };
+  }
+};
 
   // --- CRUD OPERATIONS ---
 
