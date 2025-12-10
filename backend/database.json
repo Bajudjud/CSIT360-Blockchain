@@ -1,0 +1,31 @@
+{
+  "notes": [
+    {
+      "id": 4,
+      "title": "localStorage.removeItem('walletState')",
+      "content": "location.reload()",
+      "walletAddress": "0099b3e8170fb831c711c19f89b3d49093ad6358b1376fb3b83c17dcfa1322c4a66b53bcfc04a43effe7433aaaf0ffbe06b346b94cc88eef5e",
+      "created_at": "2025-11-20T08:12:33.429Z",
+      "updated_at": "2025-11-20T08:12:33.430Z",
+      "blockchain": {
+        "success": true,
+        "txHash": "tx_1763626354432_1",
+        "action": "CREATE",
+        "noteTitle": "localStorage.removeItem('walletState')",
+        "noteId": 4,
+        "fees": "1.06 ADA",
+        "walletAddress": "0099b3e8170fb831c711c19f89b3d49093ad6358b1376fb3b83c17dcfa1322c4a66b53bcfc04a43effe7433aaaf0ffbe06b346b94cc88eef5e",
+        "timestamp": "2025-11-20T08:12:34.432Z",
+        "block": 8576487,
+        "metadata": {
+          "noteId": 4,
+          "title": "localStorage.removeItem('walletState')",
+          "content": "location.reload()...",
+          "action": "CREATE",
+          "timestamp": "2025-11-20T08:12:34.432Z"
+        }
+      }
+    }
+  ],
+  "nextId": 5
+}
