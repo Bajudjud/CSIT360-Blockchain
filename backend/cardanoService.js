@@ -2,7 +2,6 @@ import { BlockFrostAPI } from '@blockfrost/blockfrost-js';
 
 class CardanoService {
   constructor() {
-    // ⚠️ REPLACE WITH YOUR REAL PROJECT ID
     this.API = new BlockFrostAPI({
       projectId: 'previewooSWJR3mIJrNH5oQgMERTwz5uYGa90fu', 
     });
